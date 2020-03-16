@@ -1,0 +1,10 @@
+setup:
+  addons:
+    - plan: heroku-redis
+build:
+  docker:
+    web: Dockerfile
+    worker: Dockerfile
+run:
+  web: /web
+  worker: /worker

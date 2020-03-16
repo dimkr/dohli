@@ -16,7 +16,15 @@ User-owned DoH servers are a way to solve this problem. In addition, they provid
 
 ## Implementation
 
-dohli is written in [Go](https://golang.org/) and uses [Steven Black's unified domain blacklist](https://github.com/StevenBlack/hosts) and [URLHaus](https://urlhaus.abuse.ch).
+dohli is written in [Go](https://golang.org/).
+
+It performs the actual resolving work using traditional DNS over UDP.
+
+It uses [Redis](https://redis.io/) to cache DNS responses, and as a job queue.
+
+A worker container gets notified each time a new domain name is resolved, then checks whether or not this domain should be blocked, against [Steven Black's unified domain blacklist](https://github.com/StevenBlack/hosts) and [URLHaus](https://urlhaus.abuse.ch).
+
+If yes, blocking is performed by inserting a cache entry that has no expiration time. Therefore, dohli needs some time for "training" and the client's DNS cache must expire, before ads are blocked.
 
 ## Usage
 
@@ -24,6 +32,7 @@ dohli is written in [Go](https://golang.org/) and uses [Steven Black's unified d
 heroku create -s container --addons heroku-redis
 heroku redis:maxmemory $ADDON_NAME --policy allkeys-lru
 git push heroku master
+heroku ps:scale web=1 worker=1
 ```
 
 Then, append `/dns-query` to the web URL and configure your DoH client to use this as the DoH server.

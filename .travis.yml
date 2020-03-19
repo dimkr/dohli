@@ -10,3 +10,8 @@ script:
 
 services:
   - docker
+
+deploy:
+  provider: heroku
+  on:
+    branch: master

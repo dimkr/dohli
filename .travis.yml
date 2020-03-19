@@ -1,10 +1,11 @@
 script:
+  - docker run -d --rm --network dohli --name redis redis:alpine
   - docker build -t dohli .
-  - docker run -d --rm -p 8080 -e PORT=8080 -e REDIS_URL=redis://localhost dohli /web
-  - docker run -d --rm -e REDIS_URL=redis://localhost dohli /worker
+  - docker run -d --rm --network dohli -p 8080:8080 -e PORT=8080 -e REDIS_URL=redis://redis dohli /web
+  - docker run -d --rm --network dohli -e REDIS_URL=redis://redis dohli /worker
+  - sleep 2
   - echo AAABAAABAAAAAAAABGlwdjYGZ29vZ2xlA2NvbQAAAQAB | base64 -d > /tmp/request
   - curl -f -o /dev/null --data-binary @/tmp/request http://localhost:8080/dns-query
 
 services:
   - docker
-  - redis-server

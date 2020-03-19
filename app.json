@@ -12,7 +12,7 @@
     {
       "plan": "heroku-redis",
       "options": {
-        "maxmemory": "allkeys-lru"
+        "maxmemory_policy": "allkeys-lru"
       }
     }
   ],

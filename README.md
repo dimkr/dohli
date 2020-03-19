@@ -15,7 +15,7 @@ dohli (pronounced do-kh-li) is a simple and easy to deploy DNS-over-HTTPS (DoH) 
 
 One of the central points of critique against DoH, is the centralization of data: the big companies that power the internet-scale DoH servers used by default by applications like web browsers, are granted the privilege of unique access to browsing data that spans multiple sites or devices, risking the privacy and security of users.
 
-User-owned DoH servers are a way to solve this problem. In addition, they provide an additional layer of privacy, by masking the DoH client address.
+User-owned DoH servers are a way to solve this problem. In addition, they provide an additional layer of privacy, by masking the DoH client address. Also, DoH servers like dohli, that use a random DNS server for each query, give each company a partial view of the user's browsing habits.
 
 ## Implementation
 

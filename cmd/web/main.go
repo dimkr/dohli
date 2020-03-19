@@ -27,6 +27,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -39,7 +40,7 @@ import (
 )
 
 const (
-	upstream = "8.8.8.8"
+	defaultUpstreamServers = "1.1.1.1,8.8.8.8,9.9.9.9"
 
 	minDNSCacheDuration = time.Hour
 	maxDNSCacheDuration = time.Hour * 6
@@ -47,6 +48,8 @@ const (
 	// in seconds
 	responseTTL = 60 * 30
 )
+
+var upstreamServers []string
 
 var c *cache.Cache
 var q *queue.Queue
@@ -211,6 +214,13 @@ func resolve(question dnsmessage.Question, request []byte) []byte {
 		return response
 	}
 
+	var upstream string
+	if len(upstreamServers) > 1 {
+		upstream = upstreamServers[rand.Intn(len(upstreamServers))]
+	} else {
+		upstream = upstreamServers[0]
+	}
+
 	addr, err := net.ResolveUDPAddr("udp", upstream+":53")
 	if err != nil {
 		return nil
@@ -320,6 +330,16 @@ func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8000"
+	}
+
+	servers := os.Getenv("UPSTREAM_SERVERS")
+	if servers == "" {
+		servers = defaultUpstreamServers
+	}
+
+	upstreamServers = strings.Split(servers, ",")
+	if len(upstreamServers) > 1 {
+		rand.Seed(time.Now().Unix())
 	}
 
 	var err error

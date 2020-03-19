@@ -1,4 +1,5 @@
 script:
+  - docker network create dohli
   - docker run -d --rm --network dohli --name redis redis:alpine
   - docker build -t dohli .
   - docker run -d --rm --network dohli -p 8080:8080 -e PORT=8080 -e REDIS_URL=redis://redis dohli /web

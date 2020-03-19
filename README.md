@@ -6,6 +6,7 @@
  \__,_|\___/|_| |_|_|_|
 ```
 
+[![Build Status](https://travis-ci.org/dimkr/dohli.svg?branch=master)](https://travis-ci.org/dimkr/dohli)
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
 ## Overview

@@ -163,12 +163,15 @@ func getAddresses(response []byte, domain string) []string {
 
 		if (h.Type != dnsmessage.TypeA && h.Type != dnsmessage.TypeAAAA) ||
 			h.Class != dnsmessage.ClassINET {
+			if err := p.SkipAnswer(); err != nil {
+				break
+			}
 			continue
 		}
 
 		if !strings.EqualFold(h.Name.String(), domain) {
 			if err := p.SkipAnswer(); err != nil {
-				panic(err)
+				break
 			}
 			continue
 		}

@@ -35,6 +35,8 @@ First, [deploy to Heroku](https://heroku.com/deploy).
 
 Then, append `/dns-query` to the web URL and configure your DoH client to use this as the DoH server.
 
+For example, the CI/CD pipeline deploys the `master` branch to `https://dohli.herokuapp.com`. Therefore, DoH clients that use this deployment should use `https://dohli.herokuapp.com/dns-query`.
+
 ## Deployment from CLI
 
 ```

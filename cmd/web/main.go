@@ -201,7 +201,9 @@ func getAddresses(response []byte, domain string) []string {
 }
 
 func resolve(question dnsmessage.Question, request []byte) []byte {
-	response := c.Get(question.Name.String(), question.Type)
+	domain := strings.TrimSuffix(question.Name.String(), ".")
+
+	response := c.Get(domain, question.Type)
 	if response != nil {
 		return response
 	}
@@ -231,8 +233,6 @@ func resolve(question dnsmessage.Question, request []byte) []byte {
 	}
 
 	go func() {
-		domain := strings.TrimSuffix(question.Name.String(), ".")
-
 		c.Set(domain, question.Type, buf[:len], getShortestTTL(buf[:len]))
 
 		// we want the worker to replace the cache entry we just inserted

@@ -6,6 +6,8 @@
  \__,_|\___/|_| |_|_|_|
 ```
 
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+
 ## Overview
 
 dohli (pronounced do-kh-li) is a simple and easy to deploy DNS-over-HTTPS (DoH) server that blocks ads and malicious sites.
@@ -28,14 +30,18 @@ If yes, blocking is performed by inserting a cache entry that has no expiration 
 
 ## Usage
 
+First, [deploy to Heroku](https://heroku.com/deploy).
+
+Then, append `/dns-query` to the web URL and configure your DoH client to use this as the DoH server.
+
+## Deployment from CLI
+
 ```
 heroku create -s container --addons heroku-redis
 heroku redis:maxmemory $ADDON_NAME --policy allkeys-lru
 git push heroku master
 heroku ps:scale web=1 worker=1
 ```
-
-Then, append `/dns-query` to the web URL and configure your DoH client to use this as the DoH server.
 
 ## Legal Information
 

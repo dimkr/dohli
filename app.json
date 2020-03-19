@@ -1,0 +1,27 @@
+{
+  "name": "Dohli",
+  "description": "Set up your own ad-blocking DoH server",
+  "keywords": [
+    "doh",
+    "go"
+  ],
+  "stack": "container",
+  "website": "https://github.com/dimkr/dohli",
+  "repository": "https://github.com/dimkr/dohli",
+  "addons": [
+    {
+      "plan": "heroku-redis",
+      "options": {
+        "maxmemory-policy": "allkeys-lru"
+      }
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1
+    },
+    "worker": {
+      "quantity": 1
+    }
+  }
+}

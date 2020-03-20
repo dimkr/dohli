@@ -5,11 +5,13 @@ script:
   - docker run -d --rm --network dohli -p 8080:8080 -e PORT=8080 -e REDIS_URL=redis://redis dohli /web
   - docker run -d --rm --network dohli -e REDIS_URL=redis://redis dohli /worker
   - sleep 2
+  - curl -f -o /dev/null http://localhost:8080/dns-query?dns=AAABAAABAAAAAAAABGlwdjYGZ29vZ2xlA2NvbQAAAQAB
   - echo AAABAAABAAAAAAAABGlwdjYGZ29vZ2xlA2NvbQAAAQAB | base64 -d > /tmp/request
   - curl -f -o /dev/null --data-binary @/tmp/request http://localhost:8080/dns-query
   - echo AAABAAABAAAAAAAACWdvb2dsZWFkcwFnC2RvdWJsZWNsaWNrA25ldAAAHAAB | base64 -d > /tmp/request
   - curl -f -o /dev/null --data-binary @/tmp/request http://localhost:8080/dns-query
   - sleep 2
+  - test "`curl -f -o - http://localhost:8080/dns-query?dns=AAABAAABAAAAAAAACWdvb2dsZWFkcwFnC2RvdWJsZWNsaWNrA25ldAAAHAAB | cut -c 4 | hexdump -c | awk '{print $2}'`" = 003
   - test "`curl -f -o - --data-binary @/tmp/request http://localhost:8080/dns-query | cut -c 4 | hexdump -c | awk '{print $2}'`" = 003
 
 services:

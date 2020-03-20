@@ -23,6 +23,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -270,9 +271,37 @@ func resolve(question dnsmessage.Question, request []byte) []byte {
 }
 
 func handleDNSQuery(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
+	var body []byte
+	var err error
+
+	switch r.Method {
+	case "POST":
+		body, err = ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+
+	case "GET":
+		dns, ok := r.URL.Query()["dns"]
+		if !ok {
+			http.Redirect(w, r, "/", 301)
+			return
+		}
+
+		if len(dns[0]) == 0 {
+			http.Error(w, "Bad request", 400)
+			return
+		}
+
+		body, err = base64.StdEncoding.DecodeString(dns[0])
+		if err != nil {
+			http.Error(w, "Bad request", 400)
+			return
+		}
+
+	default:
+		http.Error(w, "Bad request", 400)
 		return
 	}
 

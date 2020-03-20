@@ -294,7 +294,7 @@ func handleDNSQuery(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		body, err = base64.StdEncoding.DecodeString(dns[0])
+		body, err = base64.RawURLEncoding.DecodeString(dns[0])
 		if err != nil {
 			http.Error(w, "Bad request", 400)
 			return

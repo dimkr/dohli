@@ -37,6 +37,7 @@ RUN pip3 install -r requirements.txt
 RUN python3 updateHostsFile.py --auto -s -m -e "fakenews gambling porn social"
 
 FROM alpine
+ADD static /
 COPY --from=builder /hosts/hosts /hosts.block
 COPY --from=builder /web /web
 COPY --from=builder /worker /worker

@@ -277,7 +277,7 @@ func handleDNSQuery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(body) == 0 {
-		http.Error(w, "Bad request", 400)
+		http.Redirect(w, r, "/", 301)
 		return
 	}
 
@@ -325,8 +325,6 @@ func handleDNSQuery(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/dns-query", handleDNSQuery)
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8000"
@@ -351,5 +349,7 @@ func main() {
 		panic(err)
 	}
 
+	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("/static"))))
+	http.HandleFunc("/dns-query", handleDNSQuery)
 	http.ListenAndServe(":"+port, nil)
 }

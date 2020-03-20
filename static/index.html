@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>dohli</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+</head>
+
+<body>
+    <div class="jumbotron text-center">
+        <h1>dohli</h1>
+    </div>
+    <p class="lead text-center">
+        dohli is an ad-blocking and privacy-respecting DoH server that makes it easy to host your own DoH server in the
+        cloud.
+    </p>
+    <div class="row text-center">
+        <div class="col">
+            <h2 class="p-4">Private</h2>
+            <p>dohli blocks ads, malicious sites and sites that track you.</p>
+            <p>Your browsing history is not saved by dohli.</p>
+            <p>Each query a random DNS provider: no provider sees your entire browsing history.</p>
+        </div>
+        <div class="col">
+            <h2 class="p-4">Easy</h2>
+            <p>Nothing to install: dohli does not require a browser extension.</p>
+            <p>Works with any device or browser.</p>
+            <p>Stays fast and updated.</p>
+        </div>
+        <div class="col">
+            <h2 class="p-4">Different</h2>
+            <p>dohli gets better and faster at blocking ads, as you browse more.</p>
+            <p>dohli uses multiple techniques to find new sites to block.</p>
+            <p>Deploy your own instance of dohli in one click!</p>
+        </div>
+    </div>
+    <div class="container p-4 my-3 bg-dark text-light">
+        To use dohli, <a
+            href="https://support.mozilla.org/en-US/kb/firefox-dns-over-https#w_switching-providers">configure</a>
+        https://dohli.herokuapp.com/dns-query as your custom DoH server, or <a
+            href="https://heroku.com/deploy?template=https://github.com/dimkr/dohli">roll your own</a>.
+    </div>
+    <div class="container p-4 my-3">
+        <h2 class="text-center">FAQ</h2>
+        <h3 class="p-3">Will dohli slow down my device?</h3>
+        <p>Yes and <a href="https://samknows.com/blog/dns-over-https-performance">no</a>. DoH can be slower than DNS on
+            some devices, but most operating systems, browsers, etc', fetch DNS responses from a local cache. Also, once
+            you use dohli, your browser won't have to fetch and render ads.</p>
+        <h3 class="p-3">Can I trust dohli?</h3>
+        <p>Yes, it's free software and you have the <a href="https://github.com/dimkr/dohli">source code</a>.</p>
+        <h3 class="p-3">Can I use dohli for commercial purposes?</h3>
+        <p>Yes, as long as you comply with <a href="https://github.com/dimkr/dohli/blob/master/COPYING">dohli's
+                license</a> and the license of each <a
+                href="https://github.com/StevenBlack/hosts#sources-of-hosts-data-unified-in-this-variant">domain
+                blacklist source</a>. Please do not use https://dohli.herokuapp.com/dns-query for anything but personal
+            use or demonstration purposes.
+        </p>
+    </div>
+</body>
+
+</html>

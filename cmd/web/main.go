@@ -127,14 +127,14 @@ func handleDNSQuery(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	switch r.Method {
-	case "POST":
+	case http.MethodPost:
 		body, err = ioutil.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
 		}
 
-	case "GET":
+	case http.MethodGet:
 		dns, ok := r.URL.Query()["dns"]
 		if !ok {
 			http.Redirect(w, r, "/", 301)

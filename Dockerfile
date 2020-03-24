@@ -33,6 +33,7 @@ RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /worker ./cmd/worker
 RUN git clone --depth 1 https://github.com/StevenBlack/hosts /hosts
 WORKDIR /hosts
 RUN pip3 install -r requirements.txt
+RUN for i in data/*/update.json; do [ -z "`cat $i | grep license | grep -e CC -e MIT`" ] && rm -vf $i; done
 RUN python3 updateHostsFile.py --auto -s -m -e "fakenews gambling porn social"
 
 FROM alpine

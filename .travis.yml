@@ -1,5 +1,6 @@
 script:
-  - docker run --rm -v `pwd`:/root/dohli -w /root/dohli golang:alpine go test ./...
+  - docker build -t dohli:build -f Dockerfile.build .
+  - docker run --rm -v `pwd`:/root/dohli -w /root/dohli dohli:build go test ./...
   - docker network create dohli
   - docker run -d --rm --network dohli --name redis redis:alpine
   - docker build -t dohli .

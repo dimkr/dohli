@@ -130,55 +130,55 @@ func handleDNSQuery(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		body, err = ioutil.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, err.Error(), 500)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
 	case http.MethodGet:
 		dns, ok := r.URL.Query()["dns"]
 		if !ok {
-			http.Redirect(w, r, "/", 301)
+			http.Redirect(w, r, "/", http.StatusMovedPermanently)
 			return
 		}
 
 		if len(dns[0]) == 0 {
-			http.Error(w, "Bad request", 400)
+			http.Error(w, "Bad request", http.StatusBadRequest)
 			return
 		}
 
 		body, err = base64.RawURLEncoding.DecodeString(dns[0])
 		if err != nil {
-			http.Error(w, "Bad request", 400)
+			http.Error(w, "Bad request", http.StatusBadRequest)
 			return
 		}
 
 	default:
-		http.Error(w, "Bad request", 400)
+		http.Error(w, "Bad method", http.StatusMethodNotAllowed)
 		return
 	}
 
 	if len(body) == 0 {
-		http.Redirect(w, r, "/", 301)
+		http.Redirect(w, r, "/", http.StatusMovedPermanently)
 		return
 	}
 
 	var p dnsmessage.Parser
 
 	if _, err := p.Start(body); err != nil {
-		http.Error(w, "Bad request", 400)
+		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
 	question, err := p.Question()
 	if err != nil {
-		http.Error(w, "Bad request", 400)
+		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
 	// Chrome resolves junk domains without a dot
 	domain := question.Name.String()
 	if strings.Index(domain, ".") == len(domain)-1 {
-		http.Error(w, "Bad request", 400)
+		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -191,7 +191,7 @@ func handleDNSQuery(w http.ResponseWriter, r *http.Request) {
 	select {
 	case buf := <-resolvingChan:
 		if buf == nil {
-			http.Error(w, "Resolving failed", 500)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 

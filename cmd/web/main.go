@@ -36,6 +36,7 @@ import (
 	"time"
 
 	"github.com/dimkr/dohli/pkg/cache"
+	"github.com/dimkr/dohli/pkg/dns"
 	"github.com/dimkr/dohli/pkg/queue"
 	"golang.org/x/net/dns/dnsmessage"
 )
@@ -54,47 +55,6 @@ var upstreamServers []string
 
 var c *cache.Cache
 var q *queue.Queue
-
-func getShortestTTL(response []byte) time.Duration {
-	var p dnsmessage.Parser
-
-	if _, err := p.Start(response); err != nil {
-		return 0
-	}
-
-	if err := p.SkipAllQuestions(); err != nil {
-		return 0
-	}
-
-	var shortestTTL uint32
-
-	for {
-		a, err := p.Answer()
-		if errors.Is(err, dnsmessage.ErrSectionDone) {
-			break
-		}
-
-		if err != nil {
-			break
-		}
-
-		if a.Header.TTL < shortestTTL {
-			shortestTTL = a.Header.TTL
-		}
-	}
-
-	d := time.Duration(shortestTTL)
-
-	if d < minDNSCacheDuration {
-		return minDNSCacheDuration
-	}
-
-	if d > maxDNSCacheDuration {
-		return maxDNSCacheDuration
-	}
-
-	return d
-}
 
 func replaceTTLInResponse(response []byte, TTL uint32) ([]byte, error) {
 	var p dnsmessage.Parser
@@ -247,7 +207,13 @@ func resolve(question dnsmessage.Question, request []byte) []byte {
 	}
 
 	go func() {
-		c.Set(domain, question.Type, buf[:len], getShortestTTL(buf[:len]))
+		ttl := dns.GetShortestTTL(buf[:len])
+		if ttl < minDNSCacheDuration {
+			ttl = minDNSCacheDuration
+		} else if ttl > maxDNSCacheDuration {
+			ttl = maxDNSCacheDuration
+		}
+		c.Set(domain, question.Type, buf[:len], ttl)
 
 		// we want the worker to replace the cache entry we just inserted
 		if j, err := json.Marshal(queue.DomainAccessMessage{

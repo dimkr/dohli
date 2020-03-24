@@ -27,5 +27,4 @@ import "golang.org/x/net/dns/dnsmessage"
 type DomainAccessMessage struct {
 	Domain      string          `json:"domain"`
 	RequestType dnsmessage.Type `json:"request_type"`
-	Addresses   []string        `json:"addresses"`
 }

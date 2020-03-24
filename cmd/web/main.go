@@ -26,7 +26,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net"
 	"net/http"
@@ -54,73 +53,6 @@ var upstreamServers []string
 
 var c *cache.Cache
 var q *queue.Queue
-
-func getAddresses(response []byte, domain string) []string {
-	var p dnsmessage.Parser
-	var addresses []string
-
-	if _, err := p.Start(response); err != nil {
-		log.Printf("Parsing failed: %v", err)
-		return addresses
-	}
-
-	if err := p.SkipAllQuestions(); err != nil {
-		return addresses
-	}
-
-	for {
-		var addr []byte
-
-		h, err := p.AnswerHeader()
-		if err == dnsmessage.ErrSectionDone {
-			break
-		}
-		if err != nil {
-			log.Printf("DNS answer parsing failed: %v", err)
-			break
-		}
-
-		if (h.Type != dnsmessage.TypeA && h.Type != dnsmessage.TypeAAAA) ||
-			h.Class != dnsmessage.ClassINET {
-			if err := p.SkipAnswer(); err != nil {
-				break
-			}
-			continue
-		}
-
-		if !strings.EqualFold(h.Name.String(), domain) {
-			if err := p.SkipAnswer(); err != nil {
-				break
-			}
-			continue
-		}
-
-		switch h.Type {
-		case dnsmessage.TypeA:
-			r, err := p.AResource()
-			if err != nil {
-				log.Printf("A record parsing failed: %v", err)
-				break
-			}
-			addr = r.A[:]
-
-		case dnsmessage.TypeAAAA:
-			r, err := p.AAAAResource()
-			if err != nil {
-				log.Printf("AAAA record parsing failed: %v", err)
-				break
-			}
-			addr = r.AAAA[:]
-
-		default:
-			continue
-		}
-
-		addresses = append(addresses, net.IP(addr).String())
-	}
-
-	return addresses
-}
 
 func resolve(question dnsmessage.Question, request []byte) []byte {
 	domain := strings.TrimSuffix(question.Name.String(), ".")
@@ -174,7 +106,6 @@ func resolve(question dnsmessage.Question, request []byte) []byte {
 		if j, err := json.Marshal(queue.DomainAccessMessage{
 			Domain:      domain,
 			RequestType: question.Type,
-			Addresses:   getAddresses(buf[:len], question.Name.String()),
 		}); err == nil {
 			q.Push(string(j))
 		}

@@ -25,7 +25,6 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -55,50 +54,6 @@ var upstreamServers []string
 
 var c *cache.Cache
 var q *queue.Queue
-
-func replaceTTLInResponse(response []byte, TTL uint32) ([]byte, error) {
-	var p dnsmessage.Parser
-
-	header, err := p.Start(response)
-	if err != nil {
-		return nil, err
-	}
-
-	questions, err := p.AllQuestions()
-	if err != nil {
-		return nil, err
-	}
-
-	additionals, err := p.AllAdditionals()
-	if err != nil {
-		return nil, err
-	}
-
-	var answers []dnsmessage.Resource
-
-	for {
-		answer, err := p.Answer()
-		if errors.Is(err, dnsmessage.ErrSectionDone) {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		answer.Header.TTL = TTL
-
-		answers = append(answers, answer)
-	}
-
-	msg := dnsmessage.Message{
-		Header:      header,
-		Questions:   questions,
-		Answers:     answers,
-		Additionals: additionals,
-	}
-
-	return msg.Pack()
-}
 
 func getAddresses(response []byte, domain string) []string {
 	var p dnsmessage.Parser
@@ -229,7 +184,7 @@ func resolve(question dnsmessage.Question, request []byte) []byte {
 	// us from blocking them in the future, or have low TTL, which increases
 	// the number of requests we serve
 
-	if response, err := replaceTTLInResponse(buf[:len], responseTTL); err == nil {
+	if response, err := dns.ReplaceTTLInResponse(buf[:len], responseTTL); err == nil {
 		return response
 	}
 

@@ -59,3 +59,48 @@ func GetShortestTTL(response []byte) time.Duration {
 
 	return time.Duration(shortestTTL)
 }
+
+func ReplaceTTLInResponse(response []byte, TTL uint32) ([]byte, error) {
+	var p dnsmessage.Parser
+
+	header, err := p.Start(response)
+	if err != nil {
+		return nil, err
+	}
+
+	questions, err := p.AllQuestions()
+	if err != nil {
+		return nil, err
+	}
+
+	var additionals []dnsmessage.Resource
+
+	additionals, err = p.AllAdditionals()
+	if err != nil && !errors.Is(err, dnsmessage.ErrNotStarted) {
+		return nil, err
+	}
+	var answers []dnsmessage.Resource
+
+	for {
+		answer, err := p.Answer()
+		if errors.Is(err, dnsmessage.ErrSectionDone) {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		answer.Header.TTL = TTL
+
+		answers = append(answers, answer)
+	}
+
+	msg := dnsmessage.Message{
+		Header:      header,
+		Questions:   questions,
+		Answers:     answers,
+		Additionals: additionals,
+	}
+
+	return msg.Pack()
+}

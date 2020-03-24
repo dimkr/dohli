@@ -49,3 +49,14 @@ func TestGetShortestTTLCut(t *testing.T) {
 		t.Error()
 	}
 }
+
+func TestReplaceTTLInResponse(t *testing.T) {
+	response, err := ReplaceTTLInResponse([]byte(dnsResponse), 7200)
+	if err != nil {
+		t.Error()
+	}
+
+	if GetShortestTTL(response) != 7200 {
+		t.Error()
+	}
+}

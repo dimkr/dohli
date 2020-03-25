@@ -24,7 +24,6 @@ package dns
 
 import (
 	"errors"
-	"math"
 	"time"
 
 	"golang.org/x/net/dns/dnsmessage"
@@ -41,7 +40,10 @@ func GetShortestTTL(response []byte) time.Duration {
 		return 0
 	}
 
-	var shortestTTL uint32 = math.MaxUint32
+	ns := time.Second.Nanoseconds()
+	var shortestTTL int64
+	first := true
+
 	for {
 		a, err := p.Answer()
 		if errors.Is(err, dnsmessage.ErrSectionDone) {
@@ -52,9 +54,11 @@ func GetShortestTTL(response []byte) time.Duration {
 			break
 		}
 
-		if a.Header.TTL < shortestTTL {
-			shortestTTL = a.Header.TTL
+		ttl := int64(a.Header.TTL) * ns
+		if first || ttl < shortestTTL {
+			shortestTTL = ttl
 		}
+		first = false
 	}
 
 	return time.Duration(shortestTTL)

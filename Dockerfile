@@ -29,6 +29,7 @@ ADD go.mod /src/go.mod
 ADD go.sum /src/go.sum
 WORKDIR /src
 RUN go test ./...
+RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /stub ./cmd/stub
 RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /web ./cmd/web
 RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /worker ./cmd/worker
 
@@ -42,5 +43,6 @@ RUN python3 updateHostsFile.py --auto -s -m -e "fakenews gambling porn social"
 FROM alpine
 ADD static/ /static
 COPY --from=builder /hosts/hosts /hosts.block
+COPY --from=builder /stub /stub
 COPY --from=builder /web /web
 COPY --from=builder /worker /worker

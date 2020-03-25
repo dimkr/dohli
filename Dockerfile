@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-FROM dohli:build as builder
+FROM golang:alpine AS builder
 
 ADD cmd/ /src/cmd
 ADD pkg/ /src/pkg
@@ -30,6 +30,7 @@ WORKDIR /src
 RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /web ./cmd/web
 RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /worker ./cmd/worker
 
+RUN apk add gcc musl-dev python3 py3-pip python3-dev libxml2-dev libxslt-dev git
 RUN git clone --depth 1 https://github.com/StevenBlack/hosts /hosts
 WORKDIR /hosts
 RUN pip3 install -r requirements.txt

@@ -24,6 +24,7 @@ package dns
 
 import (
 	"testing"
+	"time"
 )
 
 const (
@@ -34,19 +35,19 @@ const (
 )
 
 func TestGetShortestTTL(t *testing.T) {
-	if GetShortestTTL([]byte(dnsResponse)) != 300 {
+	if GetShortestTTL([]byte(dnsResponse)) != 300*time.Second {
 		t.Error()
 	}
 }
 
 func TestGetShortestTTLOneShort(t *testing.T) {
-	if GetShortestTTL([]byte(dnsResponseWithOneShortTTL)) != 200 {
+	if GetShortestTTL([]byte(dnsResponseWithOneShortTTL)) != 200*time.Second {
 		t.Error()
 	}
 }
 
 func TestGetShortestTTLCut(t *testing.T) {
-	if GetShortestTTL([]byte(dnsResponseCut)) != 299 {
+	if GetShortestTTL([]byte(dnsResponseCut)) != 299*time.Second {
 		t.Error()
 	}
 }
@@ -63,7 +64,7 @@ func TestReplaceTTLInResponse(t *testing.T) {
 		t.Error()
 	}
 
-	if GetShortestTTL(response) != 7200 {
+	if GetShortestTTL(response) != 7200*time.Second {
 		t.Error()
 	}
 }

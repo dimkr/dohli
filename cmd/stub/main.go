@@ -25,6 +25,7 @@ package main
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"math"
@@ -86,13 +87,12 @@ func main() {
 
 		go func() {
 			var p dnsmessage.Parser
-			var domain []byte
+			var key []byte
 
 			if _, err := p.Start(buf[:len]); err == nil {
 				if question, err := p.Question(); err == nil {
-					domain = []byte(question.Name.String())
-
-					if cached, err := cache.Get(domain); err == nil {
+					key = []byte(fmt.Sprintf("%s:%d", question.Name.String(), question.Type))
+					if cached, err := cache.Get(key); err == nil {
 						l.WriteTo(cached, addr)
 						return
 					}
@@ -102,14 +102,14 @@ func main() {
 			if response := resolve(buf[:len]); response != nil {
 				l.WriteTo(response, addr)
 
-				if domain != nil {
+				if key != nil {
 					ttl := math.Floor(dns.GetShortestTTL(response).Seconds())
 					if ttl > math.MaxInt32 {
 						ttl = math.MaxInt32
 					} else if ttl == 0 {
 						ttl = fallbackTTL
 					}
-					cache.Set(domain, response, int(ttl))
+					cache.Set(key, response, int(ttl))
 				}
 			}
 		}()

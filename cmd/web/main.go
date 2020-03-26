@@ -23,6 +23,7 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
@@ -54,6 +55,8 @@ const (
 	readTimeout  = 5 * time.Second
 	writeTimeout = 5 * time.Second
 	idleTimeout  = 10 * time.Second
+
+	resolvingTimeout = 3 * time.Second
 )
 
 var upstreamServers []string
@@ -61,23 +64,7 @@ var upstreamServers []string
 var c *cache.Cache
 var q *queue.Queue
 
-func resolve(question dnsmessage.Question, request []byte) []byte {
-	domain := strings.TrimSuffix(question.Name.String(), ".")
-
-	// Chrome resolves junk domains without a dot
-	if strings.Index(domain, ".") == -1 {
-		response, err := dns.BuildNXDomainResponse(domain, question.Type)
-		if err == nil {
-			return response
-		}
-		return nil
-	}
-
-	response := c.Get(domain, question.Type)
-	if response != nil {
-		return response
-	}
-
+func resolveWithUpstream(question dnsmessage.Question, request []byte) []byte {
 	var upstream string
 	if len(upstreamServers) > 1 {
 		upstream = upstreamServers[rand.Intn(len(upstreamServers))]
@@ -96,7 +83,7 @@ func resolve(question dnsmessage.Question, request []byte) []byte {
 	}
 	defer conn.Close()
 
-	conn.SetDeadline(time.Now().Add(time.Second * 10))
+	conn.SetDeadline(time.Now().Add(resolvingTimeout))
 
 	if _, err := conn.Write(request); err != nil {
 		return nil
@@ -109,14 +96,49 @@ func resolve(question dnsmessage.Question, request []byte) []byte {
 		return nil
 	}
 
+	return buf[:len]
+}
+
+func resolve(ctx context.Context, question dnsmessage.Question, request []byte) []byte {
+	domain := strings.TrimSuffix(question.Name.String(), ".")
+
+	// Chrome resolves junk domains without a dot
+	if strings.Index(domain, ".") == -1 {
+		response, err := dns.BuildNXDomainResponse(domain, question.Type)
+		if err == nil {
+			return response
+		}
+		return nil
+	}
+
+	if cachedResponse := c.Get(domain, question.Type); cachedResponse != nil {
+		return cachedResponse
+	}
+
+	responseChan := make(chan []byte)
+
 	go func() {
-		ttl := dns.GetShortestTTL(buf[:len])
+		responseChan <- resolveWithUpstream(question, request)
+	}()
+
+	var response []byte
+
+	select {
+	case response = <-responseChan:
+		break
+
+	case <-ctx.Done():
+		return nil
+	}
+
+	go func() {
+		ttl := dns.GetShortestTTL(response)
 		if ttl < minDNSCacheDuration {
 			ttl = minDNSCacheDuration
 		} else if ttl > maxDNSCacheDuration {
 			ttl = maxDNSCacheDuration
 		}
-		c.Set(domain, question.Type, buf[:len], ttl)
+		c.Set(domain, question.Type, response, ttl)
 
 		// we want the worker to replace the cache entry we just inserted
 		if j, err := json.Marshal(queue.DomainAccessMessage{
@@ -130,12 +152,11 @@ func resolve(question dnsmessage.Question, request []byte) []byte {
 	// we don't want DNS responses to have high TTL, because that would prevent
 	// us from blocking them in the future, or have low TTL, which increases
 	// the number of requests we serve
-
-	if response, err := dns.ReplaceTTLInResponse(buf[:len], responseTTL); err == nil {
+	if response, err := dns.ReplaceTTLInResponse(response, responseTTL); err == nil {
 		return response
 	}
 
-	return buf[:len]
+	return response
 }
 
 func handleDNSQuery(w http.ResponseWriter, r *http.Request) {
@@ -194,7 +215,7 @@ func handleDNSQuery(w http.ResponseWriter, r *http.Request) {
 	resolvingChan := make(chan []byte)
 
 	go func() {
-		resolvingChan <- resolve(question, body)
+		resolvingChan <- resolve(r.Context(), question, body)
 	}()
 
 	select {

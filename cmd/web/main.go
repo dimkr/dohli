@@ -57,6 +57,15 @@ var q *queue.Queue
 func resolve(question dnsmessage.Question, request []byte) []byte {
 	domain := strings.TrimSuffix(question.Name.String(), ".")
 
+	// Chrome resolves junk domains without a dot
+	if strings.Index(domain, ".") == -1 {
+		response, err := dns.BuildNXDomainResponse(domain, question.Type)
+		if err == nil {
+			return response
+		}
+		return nil
+	}
+
 	response := c.Get(domain, question.Type)
 	if response != nil {
 		return response
@@ -171,13 +180,6 @@ func handleDNSQuery(w http.ResponseWriter, r *http.Request) {
 
 	question, err := p.Question()
 	if err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	}
-
-	// Chrome resolves junk domains without a dot
-	domain := question.Name.String()
-	if strings.Index(domain, ".") == len(domain)-1 {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}

@@ -47,6 +47,13 @@ const (
 
 	// in seconds
 	responseTTL = 60 * 30
+
+	staticAssertRequestTimeout = 5 * time.Second
+	resolvingRequestTimeout    = 3 * time.Second
+
+	readTimeout  = 5 * time.Second
+	writeTimeout = 5 * time.Second
+	idleTimeout  = 10 * time.Second
 )
 
 var upstreamServers []string
@@ -232,7 +239,17 @@ func main() {
 		panic(err)
 	}
 
-	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("/static"))))
-	http.HandleFunc("/dns-query", handleDNSQuery)
-	http.ListenAndServe(":"+port, nil)
+	mux := http.ServeMux{}
+	mux.Handle("/", http.TimeoutHandler(http.StripPrefix("/", http.FileServer(http.Dir("/static"))), staticAssertRequestTimeout, "Timeout"))
+	mux.Handle("/dns-query", http.TimeoutHandler(http.HandlerFunc(handleDNSQuery), resolvingRequestTimeout, "Timeout"))
+
+	server := http.Server{
+		Addr:         ":" + port,
+		ReadTimeout:  readTimeout,
+		WriteTimeout: writeTimeout,
+		IdleTimeout:  idleTimeout,
+		Handler:      &mux,
+	}
+
+	server.ListenAndServe()
 }

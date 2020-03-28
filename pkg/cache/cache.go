@@ -42,14 +42,8 @@ func OpenCache() (*Cache, error) {
 	if err != nil {
 		return nil, err
 	}
-	redisClient := redis.NewClient(opts)
 
-	_, err = redisClient.ConfigSet("maxmemory-policy", "allkeys-lru").Result()
-	if err != nil {
-		log.Printf("Failed to set maxmemory-policy: %v", err)
-	}
-
-	return &Cache{redisClient: redisClient}, nil
+	return &Cache{redisClient: redis.NewClient(opts)}, nil
 }
 
 func getCacheKey(domain string, requestType dnsmessage.Type) string {

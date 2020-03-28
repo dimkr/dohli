@@ -30,31 +30,11 @@ import (
 	"github.com/dimkr/dohli/pkg/queue"
 )
 
-type HostsBlacklist struct {
-	blockedDomains map[string]bool
-}
+var blockedDomains = map[string]bool{}
+
+type HostsBlacklist struct{}
 
 func (hb *HostsBlacklist) Connect() error {
-	hosts, err := os.Open("/hosts.block")
-	if err != nil {
-		return err
-	}
-	defer hosts.Close()
-
-	hb.blockedDomains = make(map[string]bool)
-
-	scanner := bufio.NewScanner(hosts)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "0.0.0.0 ") {
-			hb.blockedDomains[line[len("0.0.0.0 "):]] = true
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -63,6 +43,26 @@ func (hb *HostsBlacklist) IsAsync() bool {
 }
 
 func (hb *HostsBlacklist) IsBad(msg *queue.DomainAccessMessage) bool {
-	_, ok := hb.blockedDomains[msg.Domain]
+	_, ok := blockedDomains[msg.Domain]
 	return ok
+}
+
+func init() {
+	hosts, err := os.Open("/hosts.block")
+	if err != nil {
+		panic(err)
+	}
+	defer hosts.Close()
+
+	scanner := bufio.NewScanner(hosts)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "0.0.0.0 ") {
+			blockedDomains[line[len("0.0.0.0 "):]] = true
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		panic(err)
+	}
 }

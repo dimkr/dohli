@@ -37,6 +37,8 @@ Then, append `/dns-query` to the web URL and configure your DoH client to use th
 
 For example, the CI/CD pipeline deploys the `master` branch to `https://dohli.herokuapp.com`. Therefore, DoH clients that use this deployment should use `https://dohli.herokuapp.com/dns-query`.
 
+![Android](https://github.com/dimkr/dohli/raw/master/static/android.png) ![Firefox](https://github.com/dimkr/dohli/raw/master/static/firefox.png)
+
 ## Deployment from CLI
 
 ```

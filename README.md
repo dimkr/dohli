@@ -29,13 +29,17 @@ A worker container gets notified each time a new domain name is resolved, then c
 
 If yes, blocking is performed by inserting a cache entry that has no expiration time. Therefore, dohli needs some time for "training" and the client's DNS cache must expire, before ads are blocked.
 
+## CI/CD
+
+Every day, dohli's [CI/CD pipeline](https://travis-ci.org/github/dimkr/dohli/builds) deploys the `master` branch to `https://dohli.herokuapp.com`, with an updated domain blacklist.
+
 ## Usage
 
 First, [deploy to Heroku](https://heroku.com/deploy).
 
 Then, append `/dns-query` to the web URL and configure your DoH client to use this as the DoH server.
 
-For example, the CI/CD pipeline deploys the `master` branch to `https://dohli.herokuapp.com`. Therefore, DoH clients that use this deployment should use `https://dohli.herokuapp.com/dns-query`.
+For example, DoH clients that use the dohli instance deployed by CI/CD should use `https://dohli.herokuapp.com/dns-query`.
 
 ![Android](https://github.com/dimkr/dohli/raw/master/static/android.png) ![Firefox](https://github.com/dimkr/dohli/raw/master/static/firefox.png)
 

@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-FROM golang:alpine AS builder
+FROM golang:1.13-alpine AS builder
 
 RUN apk add gcc musl-dev
 ADD cmd/ /src/cmd

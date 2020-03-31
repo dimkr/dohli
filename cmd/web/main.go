@@ -38,6 +38,7 @@ import (
 	"github.com/dimkr/dohli/pkg/dns"
 	"github.com/dimkr/dohli/pkg/queue"
 	"golang.org/x/net/dns/dnsmessage"
+	"golang.org/x/sync/semaphore"
 )
 
 const (
@@ -45,6 +46,8 @@ const (
 
 	minDNSCacheDuration = time.Hour
 	maxDNSCacheDuration = time.Hour * 6
+
+	maxResolvingOperations = 512
 
 	// in seconds
 	responseTTL = 60 * 30
@@ -61,6 +64,7 @@ const (
 
 var upstreamServers []string
 
+var sem *semaphore.Weighted
 var c *cache.Cache
 var q *queue.Queue
 
@@ -100,6 +104,11 @@ func resolveWithUpstream(question dnsmessage.Question, request []byte) []byte {
 }
 
 func resolve(ctx context.Context, question dnsmessage.Question, request []byte) []byte {
+	if err := sem.Acquire(ctx, 1); err != nil {
+		return nil
+	}
+	defer sem.Release(1)
+
 	domain := strings.TrimSuffix(question.Name.String(), ".")
 
 	// Chrome resolves junk domains without a dot
@@ -259,6 +268,8 @@ func main() {
 	if q, err = queue.OpenQueue(); err != nil {
 		panic(err)
 	}
+
+	sem = semaphore.NewWeighted(maxResolvingOperations)
 
 	mux := http.ServeMux{}
 	mux.Handle("/", http.TimeoutHandler(http.StripPrefix("/", http.FileServer(http.Dir("/static"))), staticAssertRequestTimeout, "Timeout"))

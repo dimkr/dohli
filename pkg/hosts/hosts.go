@@ -30,6 +30,14 @@ import (
 	"github.com/dimkr/dohli/pkg/queue"
 )
 
+// We want to disable the Firefox DoH client, if Firefox resolves through
+// something like https://github.com/dimkr/nss-tls and might enable its own DoH
+// client, althouh it's using DoH really.
+//
+// See https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
+// for documentation of the canary domain mechanism.
+const canaryDomain = "use-application-dns.net"
+
 var blockedDomains = map[string]bool{}
 
 type HostsBlacklist struct{}
@@ -65,4 +73,6 @@ func init() {
 	if err := scanner.Err(); err != nil {
 		panic(err)
 	}
+
+	blockedDomains[canaryDomain] = true
 }

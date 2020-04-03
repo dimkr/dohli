@@ -28,6 +28,7 @@ ADD pkg/ /src/pkg
 ADD go.mod /src/go.mod
 ADD go.sum /src/go.sum
 WORKDIR /src
+RUN touch /hosts.block
 RUN go test ./...
 RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /web ./cmd/web
 RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /worker ./cmd/worker

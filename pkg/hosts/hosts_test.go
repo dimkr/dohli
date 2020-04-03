@@ -20,61 +20,33 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// Package hosts implements a domain blacklist.
 package hosts
 
 import (
-	"bufio"
-	"os"
-	"strings"
+	"fmt"
 
 	"github.com/dimkr/dohli/pkg/queue"
 )
 
-// We want to disable the Firefox DoH client, if Firefox resolves through
-// something like https://github.com/dimkr/nss-tls and might enable its own DoH
-// client, althouh it's using DoH really.
-//
-// See https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
-// for documentation of the canary domain mechanism.
-const canaryDomain = "use-application-dns.net"
+func ExampleHostsBlacklist_IsBad() {
+	blacklist := HostsBlacklist{}
 
-var blockedDomains = map[string]bool{}
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "use-application-dns.net"}))
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "use-application-dns.ne"}))
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "a.use-application-dns.net"}))
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "use-application-dns"}))
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: ".net"}))
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "net"}))
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: ""}))
+	fmt.Print(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "wikipedia.org"}))
 
-// HostsBlacklist is a domain blacklist.
-type HostsBlacklist struct{}
-
-func (hb *HostsBlacklist) Connect() error {
-	return nil
-}
-
-func (hb *HostsBlacklist) IsAsync() bool {
-	return false
-}
-
-func (hb *HostsBlacklist) IsBad(msg *queue.DomainAccessMessage) bool {
-	_, ok := blockedDomains[msg.Domain]
-	return ok
-}
-
-func init() {
-	hosts, err := os.Open("/hosts.block")
-	if err != nil {
-		panic(err)
-	}
-	defer hosts.Close()
-
-	scanner := bufio.NewScanner(hosts)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "0.0.0.0 ") {
-			blockedDomains[line[len("0.0.0.0 "):]] = true
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		panic(err)
-	}
-
-	blockedDomains[canaryDomain] = true
+	// Output:
+	// true
+	// false
+	// false
+	// false
+	// false
+	// false
+	// false
+	// false
 }

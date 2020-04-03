@@ -25,6 +25,7 @@ package cache
 import (
 	"encoding/hex"
 	"log"
+	"os"
 	"time"
 
 	"gopkg.in/redis.v5"
@@ -41,7 +42,7 @@ type RedisBackend struct {
 }
 
 func (rb *RedisBackend) Connect() error {
-	opts, err := redis.ParseURL(URLEnvironmentVariable)
+	opts, err := redis.ParseURL(os.Getenv(URLEnvironmentVariable))
 	if err != nil {
 		return err
 	}

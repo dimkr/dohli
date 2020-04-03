@@ -23,6 +23,7 @@
 package dns
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -34,10 +35,9 @@ const (
 	dnsResponseNoAnswers       = "\x8c\x95\x81\x80\x00\x01\x00\x00\x00\x01\x00\x00\x04\x79\x6e\x65\x74\x02\x63\x6f\x02\x69\x6c\x00\x00\x1c\x00\x01\x04\x79\x6e\x65\x74\x02\x63\x6f\x02\x69\x6c\x00\x00\x06\x00\x01\x00\x00\x01\x26\x00\x39\x08\x70\x72\x64\x64\x6e\x73\x30\x31\x06\x79\x69\x74\x77\x65\x62\xc0\x21\x0c\x69\x6e\x74\x65\x72\x6e\x65\x74\x2d\x67\x72\x70\x03\x79\x69\x74\xc0\x21\x78\x67\x3c\x71\x00\x00\x02\x58\x00\x00\x0e\x10\x00\x12\x75\x00\x00\x00\x02\x58"
 )
 
-func TestGetShortestTTL(t *testing.T) {
-	if GetShortestTTL([]byte(dnsResponse)) != 300*time.Second {
-		t.Error()
-	}
+func ExampleGetShortestTTL() {
+	fmt.Print(GetShortestTTL([]byte(dnsResponse)))
+	// Output: 5m0s
 }
 
 func TestGetShortestTTLOneShort(t *testing.T) {
@@ -58,13 +58,14 @@ func TestGetShortestTTLNoAnswers(t *testing.T) {
 	}
 }
 
-func TestReplaceTTLInResponse(t *testing.T) {
-	response, err := ReplaceTTLInResponse([]byte(dnsResponse), 7200)
-	if err != nil {
-		t.Error()
+func ExampleReplaceTTLInResponse() {
+	fmt.Println(GetShortestTTL([]byte(dnsResponse)))
+
+	if response, err := ReplaceTTLInResponse([]byte(dnsResponse), 7200); err == nil {
+		fmt.Print(GetShortestTTL(response))
 	}
 
-	if GetShortestTTL(response) != 7200*time.Second {
-		t.Error()
-	}
+	// Output:
+	// 5m0s
+	// 2h0m0s
 }

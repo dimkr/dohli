@@ -29,6 +29,8 @@ import (
 	"golang.org/x/net/dns/dnsmessage"
 )
 
+// GetShortestTTL returns the lowest TTL among the answer records of a DNS
+// response, or 0.
 func GetShortestTTL(response []byte) time.Duration {
 	var p dnsmessage.Parser
 
@@ -64,6 +66,7 @@ func GetShortestTTL(response []byte) time.Duration {
 	return time.Duration(shortestTTL)
 }
 
+// ReplaceTTLInResponse sets the TTL of all answer records in a DNS response.
 func ReplaceTTLInResponse(response []byte, TTL uint32) ([]byte, error) {
 	var p dnsmessage.Parser
 

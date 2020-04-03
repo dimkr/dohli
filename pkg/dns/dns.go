@@ -20,23 +20,5 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// Package dns provides utilities for parsing and crafting of DNS packets.
 package dns
-
-import "golang.org/x/net/dns/dnsmessage"
-
-// BuildNXDomainResponse crafts a DNS response for a given domain, with the
-// NXDOMAIN error code set.
-func BuildNXDomainResponse(domain string, requestType dnsmessage.Type) ([]byte, error) {
-	msg := dnsmessage.Message{
-		Header: dnsmessage.Header{Response: true, Authoritative: true, RCode: dnsmessage.RCodeNameError},
-		Questions: []dnsmessage.Question{
-			{
-				Name:  dnsmessage.MustNewName(domain + "."),
-				Type:  requestType,
-				Class: dnsmessage.ClassINET,
-			},
-		},
-	}
-
-	return msg.Pack()
-}

@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// Package queue implements a task queue.
 package queue
 
 import (
@@ -28,10 +29,12 @@ import (
 	"gopkg.in/redis.v5"
 )
 
+// Queue is a task queue.
 type Queue struct {
 	redisClient *redis.Client
 }
 
+// OpenQueue creates a new task queue.
 func OpenQueue() (*Queue, error) {
 	opts, err := redis.ParseURL(os.Getenv("REDIS_URL"))
 	if err != nil {
@@ -42,11 +45,13 @@ func OpenQueue() (*Queue, error) {
 	return &Queue{redisClient: redisClient}, nil
 }
 
+// Push pushes a new task to the queue.
 func (q *Queue) Push(msg string) error {
 	_, err := q.redisClient.RPush("messages", msg).Result()
 	return err
 }
 
+// Pop pops a task and blocks if the queue is empty.
 func (q *Queue) Pop() (string, error) {
 	popped, err := q.redisClient.BLPop(0, "messages").Result()
 	if err != nil {

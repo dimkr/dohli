@@ -20,44 +20,52 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// Package cache implements DNS response cache.
 package cache
 
 import (
-	"fmt"
+	"encoding/hex"
+	"log"
 	"time"
 
-	"golang.org/x/net/dns/dnsmessage"
+	"gopkg.in/redis.v5"
 )
 
-// Cache is a DNS response cache.
-type Cache struct {
-	backend CacheBackend
+// URLEnvironmentVariable is the name of the environment variable containing the
+// Redis URL.
+const URLEnvironmentVariable = "REDIS_URL"
+
+// RedisBackend is a Redis-based caching backend.
+type RedisBackend struct {
+	CacheBackend
+	client *redis.Client
 }
 
-// OpenCache opens the cache.
-func OpenCache(backend CacheBackend) (*Cache, error) {
-	if err := backend.Connect(); err != nil {
-		return nil, err
+func (rb *RedisBackend) Connect() error {
+	opts, err := redis.ParseURL(URLEnvironmentVariable)
+	if err != nil {
+		return err
 	}
 
-	return &Cache{backend: backend}, nil
-}
-
-func getCacheKey(domain string, requestType dnsmessage.Type) string {
-	return fmt.Sprintf("%s:%d", domain, int(requestType))
-}
-
-// Get returns a cached DNS response, or nil.
-func (c *Cache) Get(domain string, requestType dnsmessage.Type) []byte {
-	if response := c.backend.Get(getCacheKey(domain, requestType)); response != nil {
-		return response
-	}
-
+	rb.client = redis.NewClient(opts)
 	return nil
 }
 
-// Set adds a DNS response in the cache, or replaces a cache entry.
-func (c *Cache) Set(domain string, requestType dnsmessage.Type, response []byte, TTL time.Duration) {
-	c.backend.Set(getCacheKey(domain, requestType), response, TTL)
+func (rb *RedisBackend) Get(key string) []byte {
+	response, err := rb.client.Get(key).Result()
+	if err != nil {
+		return nil
+	}
+
+	rawResponse, err := hex.DecodeString(response)
+	if err != nil {
+		return nil
+	}
+
+	return rawResponse
+}
+
+func (rb *RedisBackend) Set(key string, value []byte, ttl time.Duration) {
+	if _, err := rb.client.Set(key, hex.EncodeToString(value), ttl).Result(); err != nil {
+		log.Printf("Failed to cache a DNS response: %v", err)
+	}
 }

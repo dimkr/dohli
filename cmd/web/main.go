@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// web is a caching DoH server.
 package main
 
 import (
@@ -261,7 +262,7 @@ func main() {
 	}
 
 	var err error
-	if c, err = cache.OpenCache(); err != nil {
+	if c, err = cache.OpenCache(&cache.RedisBackend{}); err != nil {
 		panic(err)
 	}
 

@@ -20,44 +20,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// Package cache implements DNS response cache.
 package cache
 
 import (
-	"fmt"
 	"time"
-
-	"golang.org/x/net/dns/dnsmessage"
 )
 
-// Cache is a DNS response cache.
-type Cache struct {
-	backend CacheBackend
+// DummyBackend is a dummy caching backend, that does not implement key expiry.
+type DummyBackend struct {
+	CacheBackend
+	data map[string][]byte
 }
 
-// OpenCache opens the cache.
-func OpenCache(backend CacheBackend) (*Cache, error) {
-	if err := backend.Connect(); err != nil {
-		return nil, err
-	}
-
-	return &Cache{backend: backend}, nil
+func (db *DummyBackend) Connect() error {
+	db.data = map[string][]byte{}
+	return nil
 }
 
-func getCacheKey(domain string, requestType dnsmessage.Type) string {
-	return fmt.Sprintf("%s:%d", domain, int(requestType))
-}
-
-// Get returns a cached DNS response, or nil.
-func (c *Cache) Get(domain string, requestType dnsmessage.Type) []byte {
-	if response := c.backend.Get(getCacheKey(domain, requestType)); response != nil {
-		return response
+func (db *DummyBackend) Get(key string) []byte {
+	if val, ok := db.data[key]; ok {
+		return val
 	}
 
 	return nil
 }
 
-// Set adds a DNS response in the cache, or replaces a cache entry.
-func (c *Cache) Set(domain string, requestType dnsmessage.Type, response []byte, TTL time.Duration) {
-	c.backend.Set(getCacheKey(domain, requestType), response, TTL)
+func (db *DummyBackend) Set(key string, value []byte, _ time.Duration) {
+	db.data[key] = value
 }

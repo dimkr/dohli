@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// worker monitors for domain access events and blocks domains using the cache.
 package main
 
 import (
@@ -144,7 +145,7 @@ func handleMessages() {
 func main() {
 	var err error
 
-	if c, err = cache.OpenCache(); err != nil {
+	if c, err = cache.OpenCache(&cache.RedisBackend{}); err != nil {
 		panic(err)
 	}
 

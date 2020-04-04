@@ -39,6 +39,7 @@ import (
 
 const (
 	packetSize       = 512
+	dnsHeaderSize    = 12
 	fallbackTTL      = 60
 	resolvingTimeout = 5 * time.Second
 )
@@ -59,9 +60,17 @@ func resolve(request []byte) []byte {
 		return nil
 	}
 
+	if response.ContentLength != -1 && response.ContentLength < dnsHeaderSize {
+		return nil
+	}
+
 	buf, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		log.Printf("Resolving failed: %v", err)
+		return nil
+	}
+
+	if len(buf) < dnsHeaderSize {
 		return nil
 	}
 

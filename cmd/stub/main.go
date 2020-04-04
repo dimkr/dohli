@@ -50,13 +50,13 @@ var client = http.Client{Timeout: resolvingTimeout}
 func resolve(request []byte) []byte {
 	response, err := client.Post(server, "application/dns-message", bytes.NewBuffer(request))
 	if err != nil {
-		log.Printf("Resolving failed: %v", err)
+		log.Println("Resolving failed: ", err)
 		return nil
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		log.Print("Resolving failed: " + response.Status)
+		log.Println("Resolving failed: ", response.Status)
 		return nil
 	}
 
@@ -66,7 +66,7 @@ func resolve(request []byte) []byte {
 
 	buf, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		log.Printf("Resolving failed: %v", err)
+		log.Println("Resolving failed: ", err)
 		return nil
 	}
 

@@ -67,6 +67,6 @@ func (rb *RedisBackend) Get(key string) []byte {
 
 func (rb *RedisBackend) Set(key string, value []byte, expiry int) {
 	if _, err := rb.client.Set(key, hex.EncodeToString(value), time.Second*time.Duration(expiry)).Result(); err != nil {
-		log.Printf("Failed to cache a DNS response: %v", err)
+		log.Println("Failed to cache a DNS response: ", err)
 	}
 }

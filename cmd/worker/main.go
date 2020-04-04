@@ -62,7 +62,7 @@ func doBlockDomain(domain string, requestType dnsmessage.Type) error {
 }
 
 func blockDomain(msg *queue.DomainAccessMessage) {
-	log.Print("Blocking " + msg.Domain)
+	log.Println("Blocking ", msg.Domain)
 
 	if err := doBlockDomain(msg.Domain, msg.RequestType); err != nil {
 		log.Printf("Failed to block %s: %v", msg.Domain, err)
@@ -134,7 +134,7 @@ func handleMessages() {
 	for {
 		j, err := q.Pop()
 		if err != nil {
-			log.Printf("Failed to receive a message: %v", err)
+			log.Println("Failed to receive a message: ", err)
 			break
 		}
 

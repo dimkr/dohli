@@ -57,7 +57,8 @@ func (c *Cache) Get(domain string, requestType dnsmessage.Type) []byte {
 }
 
 // Set adds a DNS response in the cache, or replaces a cache entry, while
-// optionally settings the cache entry's expiry time (specified in seconds).
+// optionally settings the cache entry's expiry time (specified in seconds, 0
+// means no expiry).
 func (c *Cache) Set(domain string, requestType dnsmessage.Type, response []byte, expiry int) {
 	c.backend.Set(getCacheKey(domain, requestType), response, expiry)
 }

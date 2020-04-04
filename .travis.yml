@@ -18,7 +18,7 @@ script:
   - test "`curl -f -o - --data-binary @/tmp/request http://localhost:8080/dns-query | cut -c 4 | hexdump -c | awk '{print $2}'`" = 003
   - docker run --rm dohli cat /stub > /tmp/stub
   - chmod 755 /tmp/stub
-  - /tmp/stub -server http://127.0.0.1:8080/dns-query &
+  - sudo /tmp/stub -server http://127.0.0.1:8080/dns-query &
   - sleep 2
   - getent hosts googleads.g.doubleclick.net
   - sudo sh -c "echo nameserver 127.0.0.1 > /etc/resolv.conf"

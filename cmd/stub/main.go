@@ -30,6 +30,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/dimkr/dohli/pkg/cache"
 	"github.com/dimkr/dohli/pkg/dns"
@@ -37,14 +38,16 @@ import (
 )
 
 const (
-	packetSize  = 512
-	fallbackTTL = 60
+	packetSize       = 512
+	fallbackTTL      = 60
+	resolvingTimeout = 5 * time.Second
 )
 
 var server string
+var client = http.Client{Timeout: resolvingTimeout}
 
 func resolve(request []byte) []byte {
-	response, err := http.Post(server, "application/dns-message", bytes.NewBuffer(request))
+	response, err := client.Post(server, "application/dns-message", bytes.NewBuffer(request))
 	if err != nil {
 		log.Printf("Resolving failed: %v", err)
 		return nil
@@ -89,7 +92,6 @@ func main() {
 
 		go func() {
 			var p dnsmessage.Parser
-			var key []byte
 
 			if _, err := p.Start(buf[:len]); err != nil {
 				return
@@ -103,20 +105,21 @@ func main() {
 			domain := question.Name.String()
 
 			if cached := cache.Get(domain, question.Type); cached != nil {
-				l.WriteTo(cached, addr)
+				// we join the first two bytes of the request (the ID) with the
+				// cached response, which has a different ID
+				l.WriteTo(append(buf[:2], cached[2:]...), addr)
 				return
 			}
 
 			if response := resolve(buf[:len]); response != nil {
 				l.WriteTo(response, addr)
 
-				if key != nil {
-					ttl := dns.GetShortestTTL(response)
-					if ttl == 0 {
-						ttl = fallbackTTL
-					}
-					cache.Set(domain, question.Type, response, int(ttl))
+				ttl := dns.GetShortestTTL(response)
+				if ttl == 0 {
+					ttl = fallbackTTL
 				}
+
+				cache.Set(domain, question.Type, response, ttl)
 			}
 		}()
 	}

@@ -22,12 +22,8 @@
 
 package cache
 
-import (
-	"time"
-)
-
 type CacheBackend interface {
 	Connect() error
-	Set(string, []byte, time.Duration)
+	Set(string, []byte, int)
 	Get(string) []byte
 }

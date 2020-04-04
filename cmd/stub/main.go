@@ -25,14 +25,12 @@ package main
 import (
 	"bytes"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
-	"math"
 	"net"
 	"net/http"
 
-	"github.com/coocood/freecache"
+	"github.com/dimkr/dohli/pkg/cache"
 	"github.com/dimkr/dohli/pkg/dns"
 	"golang.org/x/net/dns/dnsmessage"
 )
@@ -75,7 +73,10 @@ func main() {
 		panic(err)
 	}
 
-	cache := freecache.NewCache(0)
+	cache, err := cache.OpenCache(&cache.MemoryBackend{})
+	if err != nil {
+		panic(err)
+	}
 
 	for {
 		buf := make([]byte, packetSize)
@@ -89,27 +90,31 @@ func main() {
 			var p dnsmessage.Parser
 			var key []byte
 
-			if _, err := p.Start(buf[:len]); err == nil {
-				if question, err := p.Question(); err == nil {
-					key = []byte(fmt.Sprintf("%s:%d", question.Name.String(), question.Type))
-					if cached, err := cache.Get(key); err == nil {
-						l.WriteTo(cached, addr)
-						return
-					}
-				}
+			if _, err := p.Start(buf[:len]); err != nil {
+				return
+			}
+
+			question, err := p.Question()
+			if err != nil {
+				return
+			}
+
+			domain := question.Name.String()
+
+			if cached := cache.Get(domain, question.Type); cached != nil {
+				l.WriteTo(cached, addr)
+				return
 			}
 
 			if response := resolve(buf[:len]); response != nil {
 				l.WriteTo(response, addr)
 
 				if key != nil {
-					ttl := math.Floor(dns.GetShortestTTL(response).Seconds())
-					if ttl > math.MaxInt32 {
-						ttl = math.MaxInt32
-					} else if ttl == 0 {
+					ttl := dns.GetShortestTTL(response)
+					if ttl == 0 {
 						ttl = fallbackTTL
 					}
-					cache.Set(key, response, int(ttl))
+					cache.Set(domain, question.Type, response, int(ttl))
 				}
 			}
 		}()

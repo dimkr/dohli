@@ -142,13 +142,13 @@ func resolve(ctx context.Context, question dnsmessage.Question, request []byte) 
 	}
 
 	go func() {
-		ttl := dns.GetShortestTTL(response)
+		ttl := time.Duration(dns.GetShortestTTL(response)) * time.Second
 		if ttl < minDNSCacheDuration {
 			ttl = minDNSCacheDuration
 		} else if ttl > maxDNSCacheDuration {
 			ttl = maxDNSCacheDuration
 		}
-		c.Set(domain, question.Type, response, ttl)
+		c.Set(domain, question.Type, response, int(ttl.Seconds()))
 
 		// we want the worker to replace the cache entry we just inserted
 		if j, err := json.Marshal(queue.DomainAccessMessage{

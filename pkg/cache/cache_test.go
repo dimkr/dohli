@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-	"time"
 
 	"golang.org/x/net/dns/dnsmessage"
 )
@@ -37,7 +36,7 @@ func ExampleCache_Get() {
 		panic(err)
 	}
 
-	cache.Set("wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, time.Hour)
+	cache.Set("wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, 3600)
 
 	fmt.Print(cache.Get("wikipedia.org", dnsmessage.TypeA))
 	// Output: [1 2 3 4]
@@ -55,7 +54,7 @@ func TestCacheGet(t *testing.T) {
 	cache, _ := OpenCache(&DummyBackend{})
 
 	val := []byte{1, 2, 3, 4}
-	cache.Set("wikipedia.org", dnsmessage.TypeA, val, time.Hour)
+	cache.Set("wikipedia.org", dnsmessage.TypeA, val, 3600)
 
 	cached := cache.Get("wikipedia.org", dnsmessage.TypeA)
 	if cached == nil || !reflect.DeepEqual(cached, val) {
@@ -66,7 +65,7 @@ func TestCacheGet(t *testing.T) {
 func TestCacheGetDifferentType(t *testing.T) {
 	cache, _ := OpenCache(&DummyBackend{})
 
-	cache.Set("wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, time.Hour)
+	cache.Set("wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, 3600)
 
 	if cache.Get("wikipedia.org", dnsmessage.TypeAAAA) != nil {
 		t.Error()
@@ -77,7 +76,7 @@ func TestCacheGetReplace(t *testing.T) {
 	cache, _ := OpenCache(&DummyBackend{})
 
 	val := []byte{1, 2, 3, 4}
-	cache.Set("wikipedia.org", dnsmessage.TypeA, val, time.Hour)
+	cache.Set("wikipedia.org", dnsmessage.TypeA, val, 3600)
 
 	cached := cache.Get("wikipedia.org", dnsmessage.TypeA)
 	if cached == nil || !reflect.DeepEqual(cached, val) {
@@ -91,7 +90,7 @@ func TestCacheGetReplace(t *testing.T) {
 		t.Error()
 	}
 
-	cache.Set("wikipedia.org", dnsmessage.TypeA, val2, time.Hour)
+	cache.Set("wikipedia.org", dnsmessage.TypeA, val2, 3600)
 
 	cached = cache.Get("wikipedia.org", dnsmessage.TypeA)
 	if cached == nil || !reflect.DeepEqual(cached, val2) {
@@ -102,7 +101,7 @@ func TestCacheGetReplace(t *testing.T) {
 func TestCacheGetMissingKey(t *testing.T) {
 	cache, _ := OpenCache(&DummyBackend{})
 
-	cache.Set("wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, time.Hour)
+	cache.Set("wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, 3600)
 
 	cached := cache.Get("wikipedia.or", dnsmessage.TypeA)
 	if cached != nil {

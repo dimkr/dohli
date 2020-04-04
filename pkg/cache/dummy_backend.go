@@ -22,10 +22,6 @@
 
 package cache
 
-import (
-	"time"
-)
-
 // DummyBackend is a dummy caching backend, that does not implement key expiry.
 type DummyBackend struct {
 	CacheBackend
@@ -45,6 +41,6 @@ func (db *DummyBackend) Get(key string) []byte {
 	return nil
 }
 
-func (db *DummyBackend) Set(key string, value []byte, _ time.Duration) {
+func (db *DummyBackend) Set(key string, value []byte, _ int) {
 	db.data[key] = value
 }

@@ -6,7 +6,7 @@
  \__,_|\___/|_| |_|_|_|
 ```
 
-[![Build Status](https://travis-ci.org/dimkr/dohli.svg?branch=master)](https://travis-ci.org/dimkr/dohli) [![Report Card](https://goreportcard.com/badge/github.com/dimkr/dohli)](https://goreportcard.com/report/github.com/dimkr/dohli) [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+[![Build Status](https://travis-ci.org/dimkr/dohli.svg?branch=master)](https://travis-ci.org/dimkr/dohli) [![Report Card](https://goreportcard.com/badge/github.com/dimkr/dohli)](https://goreportcard.com/report/github.com/dimkr/dohli) [![Documentation](https://img.shields.io/static/v1?color=brightgreen&logo=go&label=pkg.go.dev&message=reference)](https://pkg.go.dev/github.com/dimkr/dohli) [![Deploy](https://img.shields.io/static/v1?color=blue&logo=heroku&label=heroku&message=deploy)](https://heroku.com/deploy)
 
 ## Overview
 
@@ -34,7 +34,7 @@ Every day, dohli's [CI/CD pipeline](https://travis-ci.org/github/dimkr/dohli/bui
 
 ## Usage
 
-First, [deploy to Heroku](https://heroku.com/deploy).
+First, deploy to Heroku: [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
 Then, append `/dns-query` to the web URL and configure your DoH client to use this as the DoH server.
 

@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"golang.org/x/net/dns/dnsmessage"
 )
@@ -105,6 +106,34 @@ func TestCacheGetMissingKey(t *testing.T) {
 
 	cached := cache.Get("wikipedia.or", dnsmessage.TypeA)
 	if cached != nil {
+		t.Error()
+	}
+}
+
+func TestCacheExpiry(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+
+	cache, _ := OpenCache(&MemoryBackend{})
+
+	val := []byte{1, 2, 3, 4}
+	cache.Set("wikipedia.org", dnsmessage.TypeA, val, 3)
+
+	for i := 1; i < 2; i++ {
+		time.Sleep(time.Second)
+
+		cached := cache.Get("wikipedia.org", dnsmessage.TypeA)
+		if cached == nil || !reflect.DeepEqual(cached, val) {
+			t.Error()
+		}
+	}
+
+	// tests may run slowly and we want tests to be reliable, so we wait for 4
+	// seconds in total and not 3
+	time.Sleep(2 * time.Second)
+
+	if cache.Get("wikipedia.org", dnsmessage.TypeA) != nil {
 		t.Error()
 	}
 }

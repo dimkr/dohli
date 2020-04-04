@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// Package urlhaus queries host information from URLHaus.
 package urlhaus
 
 import (
@@ -38,16 +39,17 @@ const (
 	timeout = 5 * time.Second
 )
 
-type UrlhausAPI struct {
-	client http.Client
+// Client is a URLHaus API client.
+type Client struct {
+	httpClient http.Client
 }
 
-func (api *UrlhausAPI) Connect() error {
-	api.client.Timeout = timeout
+func (client *Client) Connect() error {
+	client.httpClient.Timeout = timeout
 	return nil
 }
 
-func (api *UrlhausAPI) IsAsync() bool {
+func (client *Client) IsAsync() bool {
 	return true
 }
 
@@ -56,8 +58,8 @@ type hostResponse struct {
 	Blacklists  map[string]string `json:"blacklists"`
 }
 
-func (api *UrlhausAPI) IsBad(msg *queue.DomainAccessMessage) bool {
-	response, err := api.client.Post(url+"/v1/host", "application/x-www-form-urlencoded", bytes.NewBuffer([]byte("host="+msg.Domain)))
+func (client *Client) IsBad(msg *queue.DomainAccessMessage) bool {
+	response, err := client.httpClient.Post(url+"/v1/host", "application/x-www-form-urlencoded", bytes.NewBuffer([]byte("host="+msg.Domain)))
 	if err != nil {
 		return false
 	}
@@ -84,7 +86,7 @@ func (api *UrlhausAPI) IsBad(msg *queue.DomainAccessMessage) bool {
 
 	for _, status := range parsedResponse.Blacklists {
 		if status != "not listed" {
-			log.Print(msg.Domain + " is blocked by URLHaus")
+			log.Println(msg.Domain, " is blocked by URLHaus")
 			return true
 		}
 	}

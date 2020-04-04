@@ -51,7 +51,7 @@ type blocker interface {
 
 var c *cache.Cache
 var q *queue.Queue
-var blockers []blocker = []blocker{&hosts.HostsBlacklist{}, &urlhaus.UrlhausAPI{}}
+var blockers []blocker = []blocker{&hosts.HostsBlacklist{}, &urlhaus.Client{}}
 
 func doBlockDomain(domain string, requestType dnsmessage.Type) error {
 	response, err := dns.BuildNXDomainResponse(domain, requestType)

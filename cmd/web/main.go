@@ -45,8 +45,8 @@ import (
 const (
 	defaultUpstreamServers = "1.1.1.1,8.8.8.8,9.9.9.9"
 
-	minDNSCacheDuration = time.Hour
-	maxDNSCacheDuration = time.Hour * 6
+	minDNSCacheDuration = int(time.Hour / time.Second)
+	maxDNSCacheDuration = int(time.Hour/time.Second) * 6
 
 	maxResolvingOperations = 512
 
@@ -142,13 +142,13 @@ func resolve(ctx context.Context, question dnsmessage.Question, request []byte) 
 	}
 
 	go func() {
-		ttl := time.Duration(dns.GetShortestTTL(response)) * time.Second
+		ttl := dns.GetShortestTTL(response)
 		if ttl < minDNSCacheDuration {
 			ttl = minDNSCacheDuration
 		} else if ttl > maxDNSCacheDuration {
 			ttl = maxDNSCacheDuration
 		}
-		c.Set(domain, question.Type, response, int(ttl.Seconds()))
+		c.Set(domain, question.Type, response, ttl)
 
 		// we want the worker to replace the cache entry we just inserted
 		if j, err := json.Marshal(queue.DomainAccessMessage{

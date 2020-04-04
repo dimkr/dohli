@@ -20,6 +20,8 @@ script:
   - sudo sh -c "echo nameserver 127.0.0.1 > /etc/resolv.conf"
   - getent hosts ipv6.google.com
   - ! getent hosts googleads.g.doubleclick.net || exit 1
+  - sleep 1
+  - ! getent hosts googleads.g.doubleclick.net || exit 1
 
 services:
   - docker

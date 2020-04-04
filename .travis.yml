@@ -4,7 +4,6 @@ script:
   - docker build -t dohli .
   - docker run -d --rm --network dohli -p 8080:8080 -e PORT=8080 -e REDIS_URL=redis://redis dohli /web
   - docker run -d --rm --network dohli -e REDIS_URL=redis://redis dohli /worker
-  - docker run -d --rm --network dohli -p 53:53/udp dohli /stub -server http://127.0.0.1:8080/dns-query
   - sleep 2
   - curl -f -o /dev/null http://localhost:8080/dns-query?dns=AAABAAABAAAAAAAABGlwdjYGZ29vZ2xlA2NvbQAAAQAB
   - echo AAABAAABAAAAAAAABGlwdjYGZ29vZ2xlA2NvbQAAAQAB | base64 -d > /tmp/request
@@ -17,6 +16,10 @@ script:
   - sleep 2
   - test "`curl -f -o - http://localhost:8080/dns-query?dns=AAABAAABAAAAAAAACWdvb2dsZWFkcwFnC2RvdWJsZWNsaWNrA25ldAAAHAAB | cut -c 4 | hexdump -c | awk '{print $2}'`" = 003
   - test "`curl -f -o - --data-binary @/tmp/request http://localhost:8080/dns-query | cut -c 4 | hexdump -c | awk '{print $2}'`" = 003
+  - docker run --rm dohli cat /stub > /tmp/stub
+  - chmod 755 /tmp/stub
+  - /tmp/stub -server http://127.0.0.1:8080/dns-query &
+  - sleep 2
   - sudo sh -c "echo nameserver 127.0.0.1 > /etc/resolv.conf"
   - getent hosts ipv6.google.com
   - |

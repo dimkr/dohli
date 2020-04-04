@@ -20,43 +20,53 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// Package queue implements a task queue.
-package queue
+package cache
 
 import (
+	"encoding/hex"
+	"log"
 	"os"
+	"time"
 
 	"gopkg.in/redis.v5"
 )
 
-// Queue is a task queue.
-type Queue struct {
-	redisClient *redis.Client
+// URLEnvironmentVariable is the name of the environment variable containing the
+// Redis URL.
+const URLEnvironmentVariable = "REDIS_URL"
+
+// RedisBackend is a Redis-based caching backend.
+type RedisBackend struct {
+	CacheBackend
+	client *redis.Client
 }
 
-// OpenQueue creates a new task queue.
-func OpenQueue() (*Queue, error) {
-	opts, err := redis.ParseURL(os.Getenv("REDIS_URL"))
+func (rb *RedisBackend) Connect() error {
+	opts, err := redis.ParseURL(os.Getenv(URLEnvironmentVariable))
 	if err != nil {
-		return nil, err
-	}
-	redisClient := redis.NewClient(opts)
-
-	return &Queue{redisClient: redisClient}, nil
-}
-
-// Push pushes a new task to the queue.
-func (q *Queue) Push(msg string) error {
-	_, err := q.redisClient.RPush("messages", msg).Result()
-	return err
-}
-
-// Pop pops a task and blocks if the queue is empty.
-func (q *Queue) Pop() (string, error) {
-	popped, err := q.redisClient.BLPop(0, "messages").Result()
-	if err != nil {
-		return "", err
+		return err
 	}
 
-	return popped[1], nil
+	rb.client = redis.NewClient(opts)
+	return nil
+}
+
+func (rb *RedisBackend) Get(key string) []byte {
+	response, err := rb.client.Get(key).Result()
+	if err != nil {
+		return nil
+	}
+
+	rawResponse, err := hex.DecodeString(response)
+	if err != nil {
+		return nil
+	}
+
+	return rawResponse
+}
+
+func (rb *RedisBackend) Set(key string, value []byte, ttl time.Duration) {
+	if _, err := rb.client.Set(key, hex.EncodeToString(value), ttl).Result(); err != nil {
+		log.Printf("Failed to cache a DNS response: %v", err)
+	}
 }

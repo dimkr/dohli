@@ -20,58 +20,44 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// Package cache implements DNS response cache.
 package cache
 
 import (
-	"encoding/hex"
 	"fmt"
-	"log"
-	"os"
 	"time"
 
 	"golang.org/x/net/dns/dnsmessage"
-	"gopkg.in/redis.v5"
 )
 
+// Cache is a DNS response cache.
 type Cache struct {
-	redisClient *redis.Client
+	backend CacheBackend
 }
 
-func OpenCache() (*Cache, error) {
-	opts, err := redis.ParseURL(os.Getenv("REDIS_URL"))
-	if err != nil {
+// OpenCache opens the cache.
+func OpenCache(backend CacheBackend) (*Cache, error) {
+	if err := backend.Connect(); err != nil {
 		return nil, err
 	}
-	redisClient := redis.NewClient(opts)
 
-	_, err = redisClient.ConfigSet("maxmemory-policy", "allkeys-lru").Result()
-	if err != nil {
-		log.Printf("Failed to set maxmemory-policy: %v", err)
-	}
-
-	return &Cache{redisClient: redisClient}, nil
+	return &Cache{backend: backend}, nil
 }
 
 func getCacheKey(domain string, requestType dnsmessage.Type) string {
 	return fmt.Sprintf("%s:%d", domain, int(requestType))
 }
 
+// Get returns a cached DNS response, or nil.
 func (c *Cache) Get(domain string, requestType dnsmessage.Type) []byte {
-	response, err := c.redisClient.Get(getCacheKey(domain, requestType)).Result()
-	if err == nil {
-		rawResponse, err := hex.DecodeString(response)
-		if err == nil {
-			return rawResponse
-		} else {
-			log.Printf("Failed to decode a cached DNS response")
-		}
+	if response := c.backend.Get(getCacheKey(domain, requestType)); response != nil {
+		return response
 	}
 
 	return nil
 }
 
+// Set adds a DNS response in the cache, or replaces a cache entry.
 func (c *Cache) Set(domain string, requestType dnsmessage.Type, response []byte, TTL time.Duration) {
-	if _, err := c.redisClient.Set(getCacheKey(domain, requestType), hex.EncodeToString(response), TTL).Result(); err != nil {
-		log.Printf("Failed to cache a DNS response: %v", err)
-	}
+	c.backend.Set(getCacheKey(domain, requestType), response, TTL)
 }

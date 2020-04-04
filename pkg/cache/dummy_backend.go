@@ -20,43 +20,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// Package queue implements a task queue.
-package queue
+package cache
 
 import (
-	"os"
-
-	"gopkg.in/redis.v5"
+	"time"
 )
 
-// Queue is a task queue.
-type Queue struct {
-	redisClient *redis.Client
+// DummyBackend is a dummy caching backend, that does not implement key expiry.
+type DummyBackend struct {
+	CacheBackend
+	data map[string][]byte
 }
 
-// OpenQueue creates a new task queue.
-func OpenQueue() (*Queue, error) {
-	opts, err := redis.ParseURL(os.Getenv("REDIS_URL"))
-	if err != nil {
-		return nil, err
-	}
-	redisClient := redis.NewClient(opts)
-
-	return &Queue{redisClient: redisClient}, nil
+func (db *DummyBackend) Connect() error {
+	db.data = map[string][]byte{}
+	return nil
 }
 
-// Push pushes a new task to the queue.
-func (q *Queue) Push(msg string) error {
-	_, err := q.redisClient.RPush("messages", msg).Result()
-	return err
-}
-
-// Pop pops a task and blocks if the queue is empty.
-func (q *Queue) Pop() (string, error) {
-	popped, err := q.redisClient.BLPop(0, "messages").Result()
-	if err != nil {
-		return "", err
+func (db *DummyBackend) Get(key string) []byte {
+	if val, ok := db.data[key]; ok {
+		return val
 	}
 
-	return popped[1], nil
+	return nil
+}
+
+func (db *DummyBackend) Set(key string, value []byte, _ time.Duration) {
+	db.data[key] = value
 }

@@ -20,43 +20,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// Package queue implements a task queue.
-package queue
+package dns
 
-import (
-	"os"
+import "golang.org/x/net/dns/dnsmessage"
 
-	"gopkg.in/redis.v5"
-)
-
-// Queue is a task queue.
-type Queue struct {
-	redisClient *redis.Client
-}
-
-// OpenQueue creates a new task queue.
-func OpenQueue() (*Queue, error) {
-	opts, err := redis.ParseURL(os.Getenv("REDIS_URL"))
-	if err != nil {
-		return nil, err
-	}
-	redisClient := redis.NewClient(opts)
-
-	return &Queue{redisClient: redisClient}, nil
-}
-
-// Push pushes a new task to the queue.
-func (q *Queue) Push(msg string) error {
-	_, err := q.redisClient.RPush("messages", msg).Result()
-	return err
-}
-
-// Pop pops a task and blocks if the queue is empty.
-func (q *Queue) Pop() (string, error) {
-	popped, err := q.redisClient.BLPop(0, "messages").Result()
-	if err != nil {
-		return "", err
+// BuildNXDomainResponse crafts a DNS response for a given domain, with the
+// NXDOMAIN error code set.
+func BuildNXDomainResponse(domain string, requestType dnsmessage.Type) ([]byte, error) {
+	msg := dnsmessage.Message{
+		Header: dnsmessage.Header{Response: true, Authoritative: true, RCode: dnsmessage.RCodeNameError},
+		Questions: []dnsmessage.Question{
+			{
+				Name:  dnsmessage.MustNewName(domain + "."),
+				Type:  requestType,
+				Class: dnsmessage.ClassINET,
+			},
+		},
 	}
 
-	return popped[1], nil
+	return msg.Pack()
 }

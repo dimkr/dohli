@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// worker monitors for domain access events and blocks domains using the cache.
 package main
 
 import (
@@ -30,6 +31,7 @@ import (
 	"syscall"
 
 	"github.com/dimkr/dohli/pkg/cache"
+	"github.com/dimkr/dohli/pkg/dns"
 	"github.com/dimkr/dohli/pkg/hosts"
 	"github.com/dimkr/dohli/pkg/queue"
 	"github.com/dimkr/dohli/pkg/urlhaus"
@@ -51,23 +53,8 @@ var c *cache.Cache
 var q *queue.Queue
 var blockers []blocker = []blocker{&hosts.HostsBlacklist{}, &urlhaus.UrlhausAPI{}}
 
-func buildResponse(domain string, requestType dnsmessage.Type) ([]byte, error) {
-	msg := dnsmessage.Message{
-		Header: dnsmessage.Header{Response: true, Authoritative: true, RCode: dnsmessage.RCodeNameError},
-		Questions: []dnsmessage.Question{
-			{
-				Name:  dnsmessage.MustNewName(domain + "."),
-				Type:  requestType,
-				Class: dnsmessage.ClassINET,
-			},
-		},
-	}
-
-	return msg.Pack()
-}
-
 func doBlockDomain(domain string, requestType dnsmessage.Type) error {
-	response, err := buildResponse(domain, requestType)
+	response, err := dns.BuildNXDomainResponse(domain, requestType)
 	if err == nil {
 		c.Set(domain, requestType, response, blockedDomainTTL)
 	}
@@ -158,7 +145,7 @@ func handleMessages() {
 func main() {
 	var err error
 
-	if c, err = cache.OpenCache(); err != nil {
+	if c, err = cache.OpenCache(&cache.RedisBackend{}); err != nil {
 		panic(err)
 	}
 

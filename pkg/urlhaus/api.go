@@ -28,18 +28,22 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/dimkr/dohli/pkg/queue"
 )
 
 const (
-	url = "https://urlhaus-api.abuse.ch"
+	url     = "https://urlhaus-api.abuse.ch"
+	timeout = 5 * time.Second
 )
 
 type UrlhausAPI struct {
+	client http.Client
 }
 
 func (api *UrlhausAPI) Connect() error {
+	api.client.Timeout = timeout
 	return nil
 }
 
@@ -53,7 +57,7 @@ type hostResponse struct {
 }
 
 func (api *UrlhausAPI) IsBad(msg *queue.DomainAccessMessage) bool {
-	response, err := http.Post(url+"/v1/host", "application/x-www-form-urlencoded", bytes.NewBuffer([]byte("host="+msg.Domain)))
+	response, err := api.client.Post(url+"/v1/host", "application/x-www-form-urlencoded", bytes.NewBuffer([]byte("host="+msg.Domain)))
 	if err != nil {
 		return false
 	}

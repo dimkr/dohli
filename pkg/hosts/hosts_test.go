@@ -20,43 +20,33 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// Package queue implements a task queue.
-package queue
+package hosts
 
 import (
-	"os"
+	"fmt"
 
-	"gopkg.in/redis.v5"
+	"github.com/dimkr/dohli/pkg/queue"
 )
 
-// Queue is a task queue.
-type Queue struct {
-	redisClient *redis.Client
-}
+func ExampleHostsBlacklist_IsBad() {
+	blacklist := HostsBlacklist{}
 
-// OpenQueue creates a new task queue.
-func OpenQueue() (*Queue, error) {
-	opts, err := redis.ParseURL(os.Getenv("REDIS_URL"))
-	if err != nil {
-		return nil, err
-	}
-	redisClient := redis.NewClient(opts)
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "use-application-dns.net"}))
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "use-application-dns.ne"}))
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "a.use-application-dns.net"}))
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "use-application-dns"}))
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: ".net"}))
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "net"}))
+	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: ""}))
+	fmt.Print(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "wikipedia.org"}))
 
-	return &Queue{redisClient: redisClient}, nil
-}
-
-// Push pushes a new task to the queue.
-func (q *Queue) Push(msg string) error {
-	_, err := q.redisClient.RPush("messages", msg).Result()
-	return err
-}
-
-// Pop pops a task and blocks if the queue is empty.
-func (q *Queue) Pop() (string, error) {
-	popped, err := q.redisClient.BLPop(0, "messages").Result()
-	if err != nil {
-		return "", err
-	}
-
-	return popped[1], nil
+	// Output:
+	// true
+	// false
+	// false
+	// false
+	// false
+	// false
+	// false
+	// false
 }

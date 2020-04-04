@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// Package hosts implements a domain blacklist.
 package hosts
 
 import (
@@ -30,31 +31,20 @@ import (
 	"github.com/dimkr/dohli/pkg/queue"
 )
 
-type HostsBlacklist struct {
-	blockedDomains map[string]bool
-}
+// We want to disable the Firefox DoH client, if Firefox resolves through
+// something like https://github.com/dimkr/nss-tls and might enable its own DoH
+// client, althouh it's using DoH really.
+//
+// See https://support.mozilla.org/en-US/kb/canary-domain-use-application-dnsnet
+// for documentation of the canary domain mechanism.
+const canaryDomain = "use-application-dns.net"
+
+var blockedDomains = map[string]bool{}
+
+// HostsBlacklist is a domain blacklist.
+type HostsBlacklist struct{}
 
 func (hb *HostsBlacklist) Connect() error {
-	hosts, err := os.Open("/hosts.block")
-	if err != nil {
-		return err
-	}
-	defer hosts.Close()
-
-	hb.blockedDomains = make(map[string]bool)
-
-	scanner := bufio.NewScanner(hosts)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "0.0.0.0 ") {
-			hb.blockedDomains[line[len("0.0.0.0 "):]] = true
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -63,6 +53,28 @@ func (hb *HostsBlacklist) IsAsync() bool {
 }
 
 func (hb *HostsBlacklist) IsBad(msg *queue.DomainAccessMessage) bool {
-	_, ok := hb.blockedDomains[msg.Domain]
+	_, ok := blockedDomains[msg.Domain]
 	return ok
+}
+
+func init() {
+	hosts, err := os.Open("/hosts.block")
+	if err != nil {
+		panic(err)
+	}
+	defer hosts.Close()
+
+	scanner := bufio.NewScanner(hosts)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "0.0.0.0 ") {
+			blockedDomains[line[len("0.0.0.0 "):]] = true
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		panic(err)
+	}
+
+	blockedDomains[canaryDomain] = true
 }

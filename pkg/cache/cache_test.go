@@ -31,7 +31,7 @@ import (
 )
 
 func ExampleCache_Get() {
-	cache, err := OpenCache(&DummyBackend{})
+	cache, err := OpenCache(&MemoryBackend{})
 	if err != nil {
 		panic(err)
 	}
@@ -43,7 +43,7 @@ func ExampleCache_Get() {
 }
 
 func TestCacheGetNoKeys(t *testing.T) {
-	cache, _ := OpenCache(&DummyBackend{})
+	cache, _ := OpenCache(&MemoryBackend{})
 
 	if cache.Get("wikipedia.org", dnsmessage.TypeA) != nil {
 		t.Error()
@@ -51,7 +51,7 @@ func TestCacheGetNoKeys(t *testing.T) {
 }
 
 func TestCacheGet(t *testing.T) {
-	cache, _ := OpenCache(&DummyBackend{})
+	cache, _ := OpenCache(&MemoryBackend{})
 
 	val := []byte{1, 2, 3, 4}
 	cache.Set("wikipedia.org", dnsmessage.TypeA, val, 3600)
@@ -63,7 +63,7 @@ func TestCacheGet(t *testing.T) {
 }
 
 func TestCacheGetDifferentType(t *testing.T) {
-	cache, _ := OpenCache(&DummyBackend{})
+	cache, _ := OpenCache(&MemoryBackend{})
 
 	cache.Set("wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, 3600)
 
@@ -73,7 +73,7 @@ func TestCacheGetDifferentType(t *testing.T) {
 }
 
 func TestCacheGetReplace(t *testing.T) {
-	cache, _ := OpenCache(&DummyBackend{})
+	cache, _ := OpenCache(&MemoryBackend{})
 
 	val := []byte{1, 2, 3, 4}
 	cache.Set("wikipedia.org", dnsmessage.TypeA, val, 3600)
@@ -99,7 +99,7 @@ func TestCacheGetReplace(t *testing.T) {
 }
 
 func TestCacheGetMissingKey(t *testing.T) {
-	cache, _ := OpenCache(&DummyBackend{})
+	cache, _ := OpenCache(&MemoryBackend{})
 
 	cache.Set("wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, 3600)
 

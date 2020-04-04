@@ -17,7 +17,7 @@ script:
   - sleep 2
   - test "`curl -f -o - http://localhost:8080/dns-query?dns=AAABAAABAAAAAAAACWdvb2dsZWFkcwFnC2RvdWJsZWNsaWNrA25ldAAAHAAB | cut -c 4 | hexdump -c | awk '{print $2}'`" = 003
   - test "`curl -f -o - --data-binary @/tmp/request http://localhost:8080/dns-query | cut -c 4 | hexdump -c | awk '{print $2}'`" = 003
-  - echo "nameserver 127.0.0.1" > /etc/resolv.conf
+  - sudo sh -c "echo nameserver 127.0.0.1 > /etc/resolv.conf"
   - getent hosts ipv6.google.com
   - getent hosts googleads.g.doubleclick.net && exit 1
 

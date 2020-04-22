@@ -24,10 +24,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/dimkr/dohli/pkg/cache"
@@ -41,6 +43,7 @@ import (
 const (
 	// no expiration
 	blockedDomainTTL = 0
+	numWorkers       = 16
 )
 
 type blocker interface {
@@ -120,17 +123,29 @@ func blockDomainIfNeeded(msg *queue.DomainAccessMessage) {
 	}
 }
 
-func handleDomainAccess(j string) {
+func worker(ctx context.Context, workers *sync.WaitGroup, jobQueue <-chan queue.DomainAccessMessage) {
+	defer workers.Done()
+
+	select {
+	case msg := <-jobQueue:
+		blockDomainIfNeeded(&msg)
+
+	case <-ctx.Done():
+		break
+	}
+}
+
+func handleDomainAccess(j string, jobQueue chan<- queue.DomainAccessMessage) {
 	var msg queue.DomainAccessMessage
 	if err := json.Unmarshal([]byte(j), &msg); err != nil {
 		log.Printf("Failed to parse %s: %v", j, err)
 		return
 	}
 
-	blockDomainIfNeeded(&msg)
+	jobQueue <- msg
 }
 
-func handleMessages() {
+func handleMessages(jobQueue chan<- queue.DomainAccessMessage) {
 	for {
 		j, err := q.Pop()
 		if err != nil {
@@ -138,7 +153,7 @@ func handleMessages() {
 			break
 		}
 
-		handleDomainAccess(j)
+		handleDomainAccess(j, jobQueue)
 	}
 }
 
@@ -159,9 +174,22 @@ func main() {
 		}
 	}
 
-	go handleMessages()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var workers sync.WaitGroup
+	jobQueue := make(chan queue.DomainAccessMessage)
+
+	for i := 0; i < numWorkers; i++ {
+		workers.Add(1)
+		go worker(ctx, &workers, jobQueue)
+	}
+
+	go handleMessages(jobQueue)
 
 	sigCh := make(chan os.Signal)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 	<-sigCh
+
+	cancel()
+	workers.Wait()
 }

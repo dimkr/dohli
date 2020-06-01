@@ -1,7 +1,8 @@
 language: go
 
 go:
-  1.13.x
+  - 1.13.x
+  - stable
 
 env:
   global:
@@ -14,10 +15,11 @@ before_script:
 
 script:
   - sudo touch /hosts.block
+  - go vet ./...
   - go test -coverprofile c.out ./...
   - docker network create dohli
   - docker run -d --rm --network dohli --name redis redis:alpine
-  - docker build -t dohli .
+  - docker build -t dohli --build-arg GO_VERSION=`go version | cut -f 3 -d " " | sed s/^go//` .
   - docker run -d --rm --network dohli -p 8080:8080 -e PORT=8080 -e REDIS_URL=redis://redis dohli /web
   - docker run -d --rm --network dohli -e REDIS_URL=redis://redis dohli /worker
   - sleep 2
@@ -46,7 +48,7 @@ script:
     ! getent hosts googleads.g.doubleclick.net || exit 1
 
 after_script:
-  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+  - echo $TRAVIS_GO_VERSION | grep -vq ^1\.13 || ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
 
 services:
   - docker
@@ -57,3 +59,4 @@ deploy:
     secure: ki4Fc1Fnj37WXM0hs8RK1fhtlAAfRUZ+NmayYK4VTz7vdB4jRud5MZlUjisa1QmcpAEkCJY9vUeMSQDdlwZF1HtWc2mXlyt7jT/T/ct2lzSubE3M7wP1zOOo5GyQ2AkpYIFkaqXOGJn40ZcjpKj+z+FkfpOWGTWV3l/VJiniXrgHXGyAdGerZ2KyKGU0bfmtDMuqwKI/77m+jbcy/+zOz1byjiKO5cpy5fxkAjb5Kam7pidkMu7E7taTIsrxKYT6SPjV2QC5zM09264StL+vCaI62zogltWqoQvgPmR3m0/3dOdy7LNyF0QInCSZHx6e8v0kPjTaW/ko72hBn95hYeiZy76PtepEOurlyP1J7IVNBtq0sNttLfQ3NmG5wKm3085XHW7E8c8Hkq7UW44b71+0vpaXd0sDwvgTt1rsvEKK2qvUsXr/2Fm+SBBi9joh16l/m7FN8EGghTvkRoZOYgjgllbF6P+U8iradC554b/EEdvuQboLKGV2g3rvgvLYARuO0vuRIOjdfHTdd66ISb6CzrgKgqZiQlutFpteJT04n6DtSb+4Pu8jLExCw01UX1ZVVXbVVX00c1zvPn6WCHjb77CiDUXdkE9ZDN+4KThIrMRJ1EKynZiuSNmbhV8l1E6SQeNcmYkABMGJGSRk49EW9EIoiftbj41CnEPvOkU=
   on:
     branch: master
+    condition: $TRAVIS_GO_VERSION =~ ^1\.13

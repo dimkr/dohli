@@ -20,7 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-FROM golang:1.13-alpine AS builder
+ARG GO_VERSION
+FROM golang:$GO_VERSION-alpine AS builder
 
 ADD cmd/ /src/cmd
 ADD pkg/ /src/pkg

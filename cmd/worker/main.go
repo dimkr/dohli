@@ -124,10 +124,10 @@ func blockDomainIfNeeded(msg *queue.DomainAccessMessage) {
 	}
 }
 
-func worker(ctx context.Context, workers *sync.WaitGroup, jobQueue <-chan queue.DomainAccessMessage, sigChan chan<- os.Signal) {
+func worker(ctx context.Context, workers *sync.WaitGroup, jobQueue <-chan queue.DomainAccessMessage, sigCh chan<- os.Signal) {
 	defer workers.Done()
 
-	if sigChan == nil {
+	if sigCh == nil {
 		for {
 			select {
 			case msg := <-jobQueue:
@@ -148,7 +148,7 @@ func worker(ctx context.Context, workers *sync.WaitGroup, jobQueue <-chan queue.
 			break
 
 		default:
-			sigChan <- syscall.SIGTERM
+			sigCh <- syscall.SIGTERM
 			break
 		}
 	}
@@ -204,13 +204,14 @@ func main() {
 	var workers sync.WaitGroup
 	jobQueue := make(chan queue.DomainAccessMessage)
 
-	for i := 0; i < numWorkers; i++ {
-		workers.Add(1)
-		if *waitForMessages {
+	if *waitForMessages {
+		for i := 0; i < numWorkers; i++ {
+			workers.Add(1)
 			go worker(ctx, &workers, jobQueue, nil)
-		} else {
-			go worker(ctx, &workers, jobQueue, sigCh)
 		}
+	} else {
+		workers.Add(1)
+		go worker(ctx, &workers, jobQueue, sigCh)
 	}
 
 	go handleMessages(jobQueue)

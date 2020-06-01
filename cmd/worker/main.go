@@ -26,6 +26,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"log"
 	"os"
 	"os/signal"
@@ -123,15 +124,33 @@ func blockDomainIfNeeded(msg *queue.DomainAccessMessage) {
 	}
 }
 
-func worker(ctx context.Context, workers *sync.WaitGroup, jobQueue <-chan queue.DomainAccessMessage) {
+func worker(ctx context.Context, workers *sync.WaitGroup, jobQueue <-chan queue.DomainAccessMessage, sigChan chan<- os.Signal) {
 	defer workers.Done()
 
-	select {
-	case msg := <-jobQueue:
-		blockDomainIfNeeded(&msg)
+	if sigChan == nil {
+		for {
+			select {
+			case msg := <-jobQueue:
+				blockDomainIfNeeded(&msg)
 
-	case <-ctx.Done():
-		break
+			case <-ctx.Done():
+				return
+			}
+		}
+	}
+
+	for {
+		select {
+		case msg := <-jobQueue:
+			blockDomainIfNeeded(&msg)
+
+		case <-ctx.Done():
+			break
+
+		default:
+			sigChan <- syscall.SIGTERM
+			break
+		}
 	}
 }
 
@@ -158,6 +177,9 @@ func handleMessages(jobQueue chan<- queue.DomainAccessMessage) {
 }
 
 func main() {
+	waitForMessages := flag.Bool("wait", false, "Wait when job queue is empty")
+	flag.Parse()
+
 	var err error
 
 	if c, err = cache.OpenCache(&cache.RedisBackend{}); err != nil {
@@ -176,18 +198,22 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	sigCh := make(chan os.Signal)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+
 	var workers sync.WaitGroup
 	jobQueue := make(chan queue.DomainAccessMessage)
 
 	for i := 0; i < numWorkers; i++ {
 		workers.Add(1)
-		go worker(ctx, &workers, jobQueue)
+		if *waitForMessages {
+			go worker(ctx, &workers, jobQueue, nil)
+		} else {
+			go worker(ctx, &workers, jobQueue, sigCh)
+		}
 	}
 
 	go handleMessages(jobQueue)
-
-	sigCh := make(chan os.Signal)
-	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 	<-sigCh
 
 	cancel()

@@ -22,7 +22,7 @@ script:
   - docker run -d --rm --network dohli --name redis redis:alpine
   - docker build -t dohli --build-arg GO_VERSION=`go version | cut -f 3 -d " " | sed s/^go//` .
   - docker run -d --rm --network dohli -p 8080:8080 -e PORT=8080 -e REDIS_URL=redis://redis dohli /web
-  - docker run -d --rm --network dohli -e REDIS_URL=redis://redis dohli /worker
+  - docker run -d --rm --network dohli -e REDIS_URL=redis://redis dohli /worker -wait
   - sleep 2
   - curl -f -o /dev/null http://localhost:8080/dns-query?dns=AAABAAABAAAAAAAABGlwdjYGZ29vZ2xlA2NvbQAAAQAB
   - echo AAABAAABAAAAAAAABGlwdjYGZ29vZ2xlA2NvbQAAAQAB | base64 -d > /tmp/request

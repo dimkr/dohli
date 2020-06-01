@@ -4,4 +4,4 @@ build:
     worker: Dockerfile
 run:
   web: /web
-  worker: /worker
+  worker: /worker -wait

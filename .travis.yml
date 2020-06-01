@@ -14,8 +14,9 @@ before_script:
   - ./cc-test-reporter before-build
 
 script:
-  - sudo touch /hosts.block
+  - echo $TRAVIS_GO_VERSION | grep -q ^1\.13 || go get -u -t ./...
   - go vet ./...
+  - sudo touch /hosts.block
   - go test -coverprofile c.out ./...
   - docker network create dohli
   - docker run -d --rm --network dohli --name redis redis:alpine

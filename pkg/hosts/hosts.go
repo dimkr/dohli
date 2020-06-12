@@ -25,6 +25,7 @@ package hosts
 
 import (
 	"bufio"
+	"context"
 	"os"
 	"strings"
 
@@ -52,7 +53,7 @@ func (hb *HostsBlacklist) IsAsync() bool {
 	return false
 }
 
-func (hb *HostsBlacklist) IsBad(msg *queue.DomainAccessMessage) bool {
+func (hb *HostsBlacklist) IsBad(_ context.Context, msg *queue.DomainAccessMessage) bool {
 	_, ok := blockedDomains[msg.Domain]
 	return ok
 }

@@ -22,8 +22,11 @@
 
 package cache
 
+import "context"
+
 type CacheBackend interface {
 	Connect() error
+	WithContext(context.Context) CacheBackend
 	Set(string, []byte, int)
 	Get(string) []byte
 }

@@ -23,6 +23,7 @@
 package cache
 
 import (
+	"context"
 	"encoding/hex"
 	"log"
 	"os"
@@ -49,6 +50,10 @@ func (rb *RedisBackend) Connect() error {
 
 	rb.client = redis.NewClient(opts)
 	return nil
+}
+
+func (rb *RedisBackend) WithContext(ctx context.Context) CacheBackend {
+	return &RedisBackend{client: rb.client.WithContext(ctx)}
 }
 
 func (rb *RedisBackend) Get(key string) []byte {

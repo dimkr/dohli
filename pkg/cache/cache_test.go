@@ -23,6 +23,7 @@
 package cache
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
@@ -37,16 +38,16 @@ func ExampleCache_Get() {
 		panic(err)
 	}
 
-	cache.Set("wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, 3600)
+	cache.Set(context.Background(), "wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, 3600)
 
-	fmt.Print(cache.Get("wikipedia.org", dnsmessage.TypeA))
+	fmt.Print(cache.Get(context.Background(), "wikipedia.org", dnsmessage.TypeA))
 	// Output: [1 2 3 4]
 }
 
 func TestCacheGetNoKeys(t *testing.T) {
 	cache, _ := OpenCache(&MemoryBackend{})
 
-	if cache.Get("wikipedia.org", dnsmessage.TypeA) != nil {
+	if cache.Get(context.Background(), "wikipedia.org", dnsmessage.TypeA) != nil {
 		t.Error()
 	}
 }
@@ -55,9 +56,9 @@ func TestCacheGet(t *testing.T) {
 	cache, _ := OpenCache(&MemoryBackend{})
 
 	val := []byte{1, 2, 3, 4}
-	cache.Set("wikipedia.org", dnsmessage.TypeA, val, 3600)
+	cache.Set(context.Background(), "wikipedia.org", dnsmessage.TypeA, val, 3600)
 
-	cached := cache.Get("wikipedia.org", dnsmessage.TypeA)
+	cached := cache.Get(context.Background(), "wikipedia.org", dnsmessage.TypeA)
 	if cached == nil || !reflect.DeepEqual(cached, val) {
 		t.Error()
 	}
@@ -66,9 +67,9 @@ func TestCacheGet(t *testing.T) {
 func TestCacheGetDifferentType(t *testing.T) {
 	cache, _ := OpenCache(&MemoryBackend{})
 
-	cache.Set("wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, 3600)
+	cache.Set(context.Background(), "wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, 3600)
 
-	if cache.Get("wikipedia.org", dnsmessage.TypeAAAA) != nil {
+	if cache.Get(context.Background(), "wikipedia.org", dnsmessage.TypeAAAA) != nil {
 		t.Error()
 	}
 }
@@ -77,23 +78,23 @@ func TestCacheGetReplace(t *testing.T) {
 	cache, _ := OpenCache(&MemoryBackend{})
 
 	val := []byte{1, 2, 3, 4}
-	cache.Set("wikipedia.org", dnsmessage.TypeA, val, 3600)
+	cache.Set(context.Background(), "wikipedia.org", dnsmessage.TypeA, val, 3600)
 
-	cached := cache.Get("wikipedia.org", dnsmessage.TypeA)
+	cached := cache.Get(context.Background(), "wikipedia.org", dnsmessage.TypeA)
 	if cached == nil || !reflect.DeepEqual(cached, val) {
 		t.Error()
 	}
 
 	val2 := []byte{5, 6, 7, 8}
 
-	cached = cache.Get("wikipedia.org", dnsmessage.TypeA)
+	cached = cache.Get(context.Background(), "wikipedia.org", dnsmessage.TypeA)
 	if cached == nil || reflect.DeepEqual(cached, val2) {
 		t.Error()
 	}
 
-	cache.Set("wikipedia.org", dnsmessage.TypeA, val2, 3600)
+	cache.Set(context.Background(), "wikipedia.org", dnsmessage.TypeA, val2, 3600)
 
-	cached = cache.Get("wikipedia.org", dnsmessage.TypeA)
+	cached = cache.Get(context.Background(), "wikipedia.org", dnsmessage.TypeA)
 	if cached == nil || !reflect.DeepEqual(cached, val2) {
 		t.Error()
 	}
@@ -102,9 +103,9 @@ func TestCacheGetReplace(t *testing.T) {
 func TestCacheGetMissingKey(t *testing.T) {
 	cache, _ := OpenCache(&MemoryBackend{})
 
-	cache.Set("wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, 3600)
+	cache.Set(context.Background(), "wikipedia.org", dnsmessage.TypeA, []byte{1, 2, 3, 4}, 3600)
 
-	cached := cache.Get("wikipedia.or", dnsmessage.TypeA)
+	cached := cache.Get(context.Background(), "wikipedia.or", dnsmessage.TypeA)
 	if cached != nil {
 		t.Error()
 	}
@@ -118,12 +119,12 @@ func TestCacheExpiry(t *testing.T) {
 	cache, _ := OpenCache(&MemoryBackend{})
 
 	val := []byte{1, 2, 3, 4}
-	cache.Set("wikipedia.org", dnsmessage.TypeA, val, 3)
+	cache.Set(context.Background(), "wikipedia.org", dnsmessage.TypeA, val, 3)
 
 	for i := 1; i < 2; i++ {
 		time.Sleep(time.Second)
 
-		cached := cache.Get("wikipedia.org", dnsmessage.TypeA)
+		cached := cache.Get(context.Background(), "wikipedia.org", dnsmessage.TypeA)
 		if cached == nil || !reflect.DeepEqual(cached, val) {
 			t.Error()
 		}
@@ -133,7 +134,7 @@ func TestCacheExpiry(t *testing.T) {
 	// seconds in total and not 3
 	time.Sleep(2 * time.Second)
 
-	if cache.Get("wikipedia.org", dnsmessage.TypeA) != nil {
+	if cache.Get(context.Background(), "wikipedia.org", dnsmessage.TypeA) != nil {
 		t.Error()
 	}
 }

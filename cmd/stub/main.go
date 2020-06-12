@@ -25,6 +25,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"io/ioutil"
 	"log"
@@ -45,14 +46,21 @@ const (
 )
 
 var server string
-var client = http.Client{Timeout: resolvingTimeout}
 
-func resolve(request []byte) []byte {
-	response, err := client.Post(server, "application/dns-message", bytes.NewBuffer(request))
+func resolve(ctx context.Context, request []byte) []byte {
+	post, err := http.NewRequestWithContext(ctx, "POST", server, bytes.NewBuffer(request))
 	if err != nil {
 		log.Println("Resolving failed: ", err)
 		return nil
 	}
+	post.Header.Set("Content-Type", "application/dns-message")
+
+	response, err := http.DefaultClient.Do(post)
+	if err != nil {
+		log.Println("Resolving failed: ", err)
+		return nil
+	}
+
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
@@ -113,14 +121,17 @@ func main() {
 
 			domain := question.Name.String()
 
-			if cached := cache.Get(domain, question.Type); cached != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), resolvingTimeout)
+			defer cancel()
+
+			if cached := cache.Get(ctx, domain, question.Type); cached != nil {
 				// we join the first two bytes of the request (the ID) with the
 				// cached response, which has a different ID
 				l.WriteTo(append(buf[:2], cached[2:]...), addr)
 				return
 			}
 
-			if response := resolve(buf[:len]); response != nil {
+			if response := resolve(ctx, buf[:len]); response != nil {
 				l.WriteTo(response, addr)
 
 				ttl := dns.GetShortestTTL(response)
@@ -128,7 +139,7 @@ func main() {
 					ttl = fallbackTTL
 				}
 
-				cache.Set(domain, question.Type, response, ttl)
+				cache.Set(ctx, domain, question.Type, response, ttl)
 			}
 		}()
 	}

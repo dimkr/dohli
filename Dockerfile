@@ -33,7 +33,7 @@ RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /web ./cmd/web
 RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /worker ./cmd/worker
 
 FROM debian:buster-slim AS hosts
-RUN apt-get -qq update && apt-get install -y --no-install-recommends python3 python3-pip python3-wheel python3-dev gcc libc6-dev libxml2-dev libxslt1-dev git wget
+RUN apt-get -qq update && apt-get install -y --no-install-recommends python3 python3-pip python3-wheel git wget
 RUN git clone --depth 1 https://github.com/StevenBlack/hosts /hosts
 WORKDIR /hosts
 RUN pip3 install -r requirements.txt

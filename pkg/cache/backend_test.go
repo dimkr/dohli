@@ -23,6 +23,7 @@
 package cache
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -37,6 +38,10 @@ type MockBackend struct {
 
 func (mb *MockBackend) Connect() error {
 	return mb.Called().Error(0)
+}
+
+func (mb *MockBackend) WithContext(_ context.Context) CacheBackend {
+	return mb
 }
 
 func (mb *MockBackend) Set(key string, value []byte, ttl int) {
@@ -77,7 +82,7 @@ func TestGet(t *testing.T) {
 
 	response := []byte{1, 2, 3, 4}
 	backend.On("Get", getCacheKey("wikipedia.org", dnsmessage.TypeA)).Return(response).Once()
-	assert.Equal(t, cache.Get("wikipedia.org", dnsmessage.TypeA), response)
+	assert.Equal(t, cache.Get(context.Background(), "wikipedia.org", dnsmessage.TypeA), response)
 }
 
 func TestGetMiss(t *testing.T) {
@@ -87,7 +92,7 @@ func TestGetMiss(t *testing.T) {
 	cache, _ := OpenCache(&backend)
 
 	backend.On("Get", getCacheKey("wikipedia.org", dnsmessage.TypeA)).Return(nil).Once()
-	assert.Nil(t, cache.Get("wikipedia.org", dnsmessage.TypeA))
+	assert.Nil(t, cache.Get(context.Background(), "wikipedia.org", dnsmessage.TypeA))
 }
 
 func TestSet(t *testing.T) {
@@ -98,5 +103,5 @@ func TestSet(t *testing.T) {
 
 	response := []byte{1, 2, 3, 4}
 	backend.On("Set", getCacheKey("wikipedia.org", dnsmessage.TypeA), response, 3600).Return(response).Once()
-	cache.Set("wikipedia.org", dnsmessage.TypeA, response, 3600)
+	cache.Set(context.Background(), "wikipedia.org", dnsmessage.TypeA, response, 3600)
 }

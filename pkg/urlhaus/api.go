@@ -25,6 +25,7 @@ package urlhaus
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"log"
@@ -40,12 +41,9 @@ const (
 )
 
 // Client is a URLHaus API client.
-type Client struct {
-	httpClient http.Client
-}
+type Client struct{}
 
 func (client *Client) Connect() error {
-	client.httpClient.Timeout = timeout
 	return nil
 }
 
@@ -58,8 +56,17 @@ type hostResponse struct {
 	Blacklists  map[string]string `json:"blacklists"`
 }
 
-func (client *Client) IsBad(msg *queue.DomainAccessMessage) bool {
-	response, err := client.httpClient.Post(url+"/v1/host", "application/x-www-form-urlencoded", bytes.NewBuffer([]byte("host="+msg.Domain)))
+func (client *Client) IsBad(parent context.Context, msg *queue.DomainAccessMessage) bool {
+	ctx, cancel := context.WithTimeout(parent, timeout)
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(ctx, "POST", url+"/v1/host", bytes.NewBuffer([]byte("host="+msg.Domain)))
+	if err != nil {
+		return false
+	}
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return false
 	}

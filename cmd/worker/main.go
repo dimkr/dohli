@@ -32,6 +32,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/dimkr/dohli/pkg/cache"
 	"github.com/dimkr/dohli/pkg/dns"
@@ -45,11 +46,13 @@ const (
 	// no expiration
 	blockedDomainTTL = 0
 	numWorkers       = 16
+
+	blockingTimeout = 10 * time.Second
 )
 
 type blocker interface {
 	Connect() error
-	IsBad(*queue.DomainAccessMessage) bool
+	IsBad(context.Context, *queue.DomainAccessMessage) bool
 	IsAsync() bool
 }
 
@@ -57,18 +60,18 @@ var c *cache.Cache
 var q *queue.Queue
 var blockers []blocker = []blocker{&hosts.HostsBlacklist{}, &urlhaus.Client{}}
 
-func doBlockDomain(domain string, requestType dnsmessage.Type) error {
+func doBlockDomain(ctx context.Context, domain string, requestType dnsmessage.Type) error {
 	response, err := dns.BuildNXDomainResponse(domain, requestType)
 	if err == nil {
-		c.Set(domain, requestType, response, blockedDomainTTL)
+		c.Set(ctx, domain, requestType, response, blockedDomainTTL)
 	}
 	return err
 }
 
-func blockDomain(msg *queue.DomainAccessMessage) {
+func blockDomain(ctx context.Context, msg *queue.DomainAccessMessage) {
 	log.Println("Blocking ", msg.Domain)
 
-	if err := doBlockDomain(msg.Domain, msg.RequestType); err != nil {
+	if err := doBlockDomain(ctx, msg.Domain, msg.RequestType); err != nil {
 		log.Printf("Failed to block %s: %v", msg.Domain, err)
 	}
 
@@ -85,15 +88,18 @@ func blockDomain(msg *queue.DomainAccessMessage) {
 		return
 	}
 
-	if err := doBlockDomain(msg.Domain, otherType); err != nil {
+	if err := doBlockDomain(ctx, msg.Domain, otherType); err != nil {
 		log.Printf("Failed to block %s: %v", msg.Domain, err)
 	}
 }
 
-func blockDomainIfNeeded(msg *queue.DomainAccessMessage) {
+func blockDomainIfNeeded(parent context.Context, msg *queue.DomainAccessMessage) {
+	ctx, cancel := context.WithTimeout(parent, blockingTimeout)
+	defer cancel()
+
 	for _, b := range blockers {
-		if !b.IsAsync() && b.IsBad(msg) {
-			blockDomain(msg)
+		if !b.IsAsync() && b.IsBad(ctx, msg) {
+			blockDomain(ctx, msg)
 			return
 		}
 	}
@@ -109,7 +115,7 @@ func blockDomainIfNeeded(msg *queue.DomainAccessMessage) {
 		n++
 
 		go func(b blocker) {
-			verdicts <- b.IsBad(msg)
+			verdicts <- b.IsBad(ctx, msg)
 		}(b)
 	}
 
@@ -117,7 +123,7 @@ func blockDomainIfNeeded(msg *queue.DomainAccessMessage) {
 		select {
 		case shouldBlock := <-verdicts:
 			if shouldBlock {
-				blockDomain(msg)
+				blockDomain(ctx, msg)
 				return
 			}
 		}
@@ -131,7 +137,7 @@ func worker(ctx context.Context, workers *sync.WaitGroup, jobQueue <-chan queue.
 		for {
 			select {
 			case msg := <-jobQueue:
-				blockDomainIfNeeded(&msg)
+				blockDomainIfNeeded(ctx, &msg)
 
 			case <-ctx.Done():
 				return
@@ -142,7 +148,7 @@ func worker(ctx context.Context, workers *sync.WaitGroup, jobQueue <-chan queue.
 	for {
 		select {
 		case msg := <-jobQueue:
-			blockDomainIfNeeded(&msg)
+			blockDomainIfNeeded(ctx, &msg)
 
 		case <-ctx.Done():
 			break

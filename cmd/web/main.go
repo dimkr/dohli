@@ -61,6 +61,7 @@ const (
 	idleTimeout  = 10 * time.Second
 
 	resolvingTimeout = 3 * time.Second
+	cachingTimeout   = 5 * time.Second
 )
 
 var upstreamServers []string
@@ -69,7 +70,7 @@ var sem *semaphore.Weighted
 var c *cache.Cache
 var q *queue.Queue
 
-func resolveWithUpstream(question dnsmessage.Question, request []byte) []byte {
+func resolveWithUpstream(parent context.Context, question dnsmessage.Question, request []byte) []byte {
 	var upstream string
 	if len(upstreamServers) > 1 {
 		upstream = upstreamServers[rand.Intn(len(upstreamServers))]
@@ -77,18 +78,14 @@ func resolveWithUpstream(question dnsmessage.Question, request []byte) []byte {
 		upstream = upstreamServers[0]
 	}
 
-	addr, err := net.ResolveUDPAddr("udp", upstream+":53")
-	if err != nil {
-		return nil
-	}
+	ctx, cancel := context.WithTimeout(parent, resolvingTimeout)
+	defer cancel()
 
-	conn, err := net.DialUDP("udp", nil, addr)
+	conn, err := (&net.Dialer{}).DialContext(ctx, "udp", upstream+":53")
 	if err != nil {
 		return nil
 	}
 	defer conn.Close()
-
-	conn.SetDeadline(time.Now().Add(resolvingTimeout))
 
 	if _, err := conn.Write(request); err != nil {
 		return nil
@@ -96,12 +93,12 @@ func resolveWithUpstream(question dnsmessage.Question, request []byte) []byte {
 
 	buf := make([]byte, 512)
 
-	len, _, err := conn.ReadFromUDP(buf)
+	n, err := conn.Read(buf)
 	if err != nil {
 		return nil
 	}
 
-	return buf[:len]
+	return buf[:n]
 }
 
 func resolve(ctx context.Context, question dnsmessage.Question, request []byte) []byte {
@@ -121,34 +118,27 @@ func resolve(ctx context.Context, question dnsmessage.Question, request []byte) 
 		return nil
 	}
 
-	if cachedResponse := c.Get(domain, question.Type); cachedResponse != nil {
+	if cachedResponse := c.Get(ctx, domain, question.Type); cachedResponse != nil {
 		return cachedResponse
 	}
 
-	responseChan := make(chan []byte)
-
-	go func() {
-		responseChan <- resolveWithUpstream(question, request)
-	}()
-
-	var response []byte
-
-	select {
-	case response = <-responseChan:
-		break
-
-	case <-ctx.Done():
+	response := resolveWithUpstream(ctx, question, request)
+	if response == nil {
 		return nil
 	}
 
 	go func() {
+		// we want to cache the response even if the request was canceled
+		ctx, cancel := context.WithTimeout(context.Background(), cachingTimeout)
+		defer cancel()
+
 		ttl := dns.GetShortestTTL(response)
 		if ttl < minDNSCacheDuration {
 			ttl = minDNSCacheDuration
 		} else if ttl > maxDNSCacheDuration {
 			ttl = maxDNSCacheDuration
 		}
-		c.Set(domain, question.Type, response, ttl)
+		c.Set(ctx, domain, question.Type, response, ttl)
 
 		// we want the worker to replace the cache entry we just inserted
 		if j, err := json.Marshal(queue.DomainAccessMessage{
@@ -222,27 +212,14 @@ func handleDNSQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resolvingChan := make(chan []byte)
-
-	go func() {
-		resolvingChan <- resolve(r.Context(), question, body)
-	}()
-
-	select {
-	case buf := <-resolvingChan:
-		if buf == nil {
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/dns-message")
-		if _, err := w.Write(buf); err != nil {
-			return
-		}
-
-	case <-r.Context().Done():
+	buf := resolve(r.Context(), question, body)
+	if buf == nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/dns-message")
+	w.Write(buf)
 }
 
 func main() {

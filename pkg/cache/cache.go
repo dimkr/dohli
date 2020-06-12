@@ -24,6 +24,7 @@
 package cache
 
 import (
+	"context"
 	"fmt"
 
 	"golang.org/x/net/dns/dnsmessage"
@@ -48,8 +49,8 @@ func getCacheKey(domain string, requestType dnsmessage.Type) string {
 }
 
 // Get returns a cached DNS response, or nil.
-func (c *Cache) Get(domain string, requestType dnsmessage.Type) []byte {
-	if response := c.backend.Get(getCacheKey(domain, requestType)); response != nil {
+func (c *Cache) Get(ctx context.Context, domain string, requestType dnsmessage.Type) []byte {
+	if response := c.backend.WithContext(ctx).Get(getCacheKey(domain, requestType)); response != nil {
 		return response
 	}
 
@@ -59,6 +60,6 @@ func (c *Cache) Get(domain string, requestType dnsmessage.Type) []byte {
 // Set adds a DNS response in the cache, or replaces a cache entry, while
 // optionally settings the cache entry's expiry time (specified in seconds, 0
 // means no expiry).
-func (c *Cache) Set(domain string, requestType dnsmessage.Type, response []byte, expiry int) {
-	c.backend.Set(getCacheKey(domain, requestType), response, expiry)
+func (c *Cache) Set(ctx context.Context, domain string, requestType dnsmessage.Type, response []byte, expiry int) {
+	c.backend.WithContext(ctx).Set(getCacheKey(domain, requestType), response, expiry)
 }

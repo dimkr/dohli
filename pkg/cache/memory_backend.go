@@ -23,6 +23,8 @@
 package cache
 
 import (
+	"context"
+
 	"github.com/coocood/freecache"
 )
 
@@ -35,6 +37,10 @@ type MemoryBackend struct {
 func (mb *MemoryBackend) Connect() error {
 	mb.cache = freecache.NewCache(0)
 	return nil
+}
+
+func (mb *MemoryBackend) WithContext(_ context.Context) CacheBackend {
+	return mb
 }
 
 func (mb *MemoryBackend) Get(key string) []byte {

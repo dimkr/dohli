@@ -23,6 +23,7 @@
 package hosts
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/dimkr/dohli/pkg/queue"
@@ -31,14 +32,14 @@ import (
 func ExampleHostsBlacklist_IsBad() {
 	blacklist := HostsBlacklist{}
 
-	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "use-application-dns.net"}))
-	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "use-application-dns.ne"}))
-	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "a.use-application-dns.net"}))
-	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "use-application-dns"}))
-	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: ".net"}))
-	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "net"}))
-	fmt.Println(blacklist.IsBad(&queue.DomainAccessMessage{Domain: ""}))
-	fmt.Print(blacklist.IsBad(&queue.DomainAccessMessage{Domain: "wikipedia.org"}))
+	fmt.Println(blacklist.IsBad(context.Background(), &queue.DomainAccessMessage{Domain: "use-application-dns.net"}))
+	fmt.Println(blacklist.IsBad(context.Background(), &queue.DomainAccessMessage{Domain: "use-application-dns.ne"}))
+	fmt.Println(blacklist.IsBad(context.Background(), &queue.DomainAccessMessage{Domain: "a.use-application-dns.net"}))
+	fmt.Println(blacklist.IsBad(context.Background(), &queue.DomainAccessMessage{Domain: "use-application-dns"}))
+	fmt.Println(blacklist.IsBad(context.Background(), &queue.DomainAccessMessage{Domain: ".net"}))
+	fmt.Println(blacklist.IsBad(context.Background(), &queue.DomainAccessMessage{Domain: "net"}))
+	fmt.Println(blacklist.IsBad(context.Background(), &queue.DomainAccessMessage{Domain: ""}))
+	fmt.Print(blacklist.IsBad(context.Background(), &queue.DomainAccessMessage{Domain: "wikipedia.org"}))
 
 	// Output:
 	// true

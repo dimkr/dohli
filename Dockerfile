@@ -32,7 +32,8 @@ RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /stub ./cmd/stub
 RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /web ./cmd/web
 RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /worker ./cmd/worker
 
-RUN apk add python3 py3-pip python3-dev gcc musl-dev libxml2-dev libxslt-dev git
+FROM debian:buster-slim AS hosts
+RUN apt-get -qq update && apt-get install -y --no-install-recommends python3 python3-pip python3-wheel python3-dev gcc libc6-dev libxml2-dev libxslt1-dev git wget
 RUN git clone --depth 1 https://github.com/StevenBlack/hosts /hosts
 WORKDIR /hosts
 RUN pip3 install -r requirements.txt
@@ -46,7 +47,7 @@ RUN cat hosts /hosts/hosts | grep -v -e ^\# -e '^$' | sort | uniq > /tmp/hosts.b
 
 FROM alpine
 ADD static/ /static
-COPY --from=builder /tmp/hosts.block /hosts.block
+COPY --from=hosts /tmp/hosts.block /hosts.block
 COPY --from=builder /stub /stub
 COPY --from=builder /web /web
 COPY --from=builder /worker /worker

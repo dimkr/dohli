@@ -97,22 +97,26 @@ func blockDomainIfNeeded(parent context.Context, msg *queue.DomainAccessMessage)
 	ctx, cancel := context.WithTimeout(parent, blockingTimeout)
 	defer cancel()
 
+	n := len(blockers)
 	for _, b := range blockers {
-		if !b.IsAsync() && b.IsBad(ctx, msg) {
+		if b.IsAsync() {
+			continue
+		}
+
+		if b.IsBad(ctx, msg) {
 			blockDomain(ctx, msg)
 			return
 		}
+
+		n--
 	}
 
-	verdicts := make(chan bool)
-	n := 0
+	verdicts := make(chan bool, n)
 
 	for _, b := range blockers {
 		if !b.IsAsync() {
 			continue
 		}
-
-		n++
 
 		go func(b blocker) {
 			verdicts <- b.IsBad(ctx, msg)

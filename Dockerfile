@@ -42,7 +42,7 @@ RUN python3 updateHostsFile.py --auto -s -m -e "fakenews gambling porn social"
 
 FROM alpine
 ADD static/ /static
-COPY --from=builder /hosts/hosts /hosts.block
+COPY --from=hosts /hosts/hosts /hosts.block
 COPY --from=builder /stub /stub
 COPY --from=builder /web /web
 COPY --from=builder /worker /worker

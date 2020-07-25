@@ -24,7 +24,7 @@ It performs the actual resolving work using traditional DNS over UDP.
 
 It uses [Redis](https://redis.io/) to cache DNS responses, and as a job queue.
 
-A worker container gets notified each time a new domain name is resolved, then checks whether or not this domain should be blocked, against [Steven Black's unified domain blacklist](https://github.com/StevenBlack/hosts), [the Energized Protection domain blacklist](https://github.com/EnergizedProtection/block) and [URLHaus](https://urlhaus.abuse.ch).
+A worker container gets notified each time a new domain name is resolved, then checks whether or not this domain should be blocked, against [Steven Black's unified domain blacklist](https://github.com/StevenBlack/hosts) and [URLHaus](https://urlhaus.abuse.ch).
 
 If yes, blocking is performed by inserting a cache entry that has no expiration time. Therefore, dohli needs some time for "training" and the client's DNS cache must expire, before ads are blocked.
 

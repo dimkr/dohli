@@ -40,9 +40,14 @@ RUN pip3 install -r requirements.txt
 RUN for i in data/*/update.json; do [ -z "`cat $i | grep license | grep -e CC -e MIT`" ] && rm -vf $i; done
 RUN python3 updateHostsFile.py --auto -s -m -e "fakenews gambling porn social"
 
+RUN git clone --depth 1 https://github.com/EnergizedProtection/block /block
+WORKDIR /block
+RUN wget -O- `cat README.md | grep SOURCE | grep -e "CC BY-SA" -e MIT -e BSD -e Permissive -e Apache  | cut -f 4 -d \] | cut -f 2 -d \( | cut -f 1 -d \)` > hosts
+RUN cat hosts /hosts/hosts | grep -v -e ^\# -e '^$' | sort | uniq > /tmp/hosts.block
+
 FROM alpine
 ADD static/ /static
-COPY --from=hosts /hosts/hosts /hosts.block
+COPY --from=hosts /tmp/hosts.block /hosts.block
 COPY --from=builder /stub /stub
 COPY --from=builder /web /web
 COPY --from=builder /worker /worker
